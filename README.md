@@ -1,46 +1,99 @@
-![Banner image](https://user-images.githubusercontent.com/10284570/173569848-c624317f-42b1-45a6-ab09-f0ea3c247648.png)
+# n8n-nodes-swipeflow
 
-# n8n-nodes-starter
+Easily add human-in-the-loop approvals to your n8n workflows with **SwipeFlow** — approve, reject, or revise content with a simple swipe on your phone.
 
-This repo contains example nodes to help you get started building your own custom integrations for [n8n](n8n.io). It includes the node linter and other dependencies.
+This integration allows you to:
+- Create approval items
+- Watch real-time SwipeFlow events via webhooks
+- Perform custom API calls against the SwipeFlow API
 
-To make your custom node available to the community, you must create it as an npm package, and [submit it to the npm registry](https://docs.npmjs.com/packages-and-modules/contributing-packages-to-the-registry).
+Use SwipeFlow to streamline your decision-making, validate AI-generated content, approve tasks, and add flexible human review points inside your automation flows.
 
-## Prerequisites
+Learn more about SwipeFlow at [https://swipeflow.io](https://swipeflow.io).
 
-You need the following installed on your development machine:
+[n8n](https://n8n.io/) is a [fair-code licensed](https://docs.n8n.io/reference/license/) workflow automation platform.
 
-* [git](https://git-scm.com/downloads)
-* Node.js and pnpm. Minimum version Node 18. You can find instructions on how to install both using nvm (Node Version Manager) for Linux, Mac, and WSL [here](https://github.com/nvm-sh/nvm). For Windows users, refer to Microsoft's guide to [Install NodeJS on Windows](https://docs.microsoft.com/en-us/windows/dev-environment/javascript/nodejs-on-windows).
-* Install n8n with:
-  ```
-  pnpm install n8n -g
-  ```
-* Recommended: follow n8n's guide to [set up your development environment](https://docs.n8n.io/integrations/creating-nodes/build/node-development-environment/).
+[Installation](#installation)  
+[Operations](#operations)  
+[Credentials](#credentials)  
+[Compatibility](#compatibility)  
+[Usage](#usage)  
+[Resources](#resources)  
+[Version history](#version-history)  
 
-## Using this starter
+## Installation
 
-These are the basic steps for working with the starter. For detailed guidance on creating and publishing nodes, refer to the [documentation](https://docs.n8n.io/integrations/creating-nodes/).
+Follow the [installation guide](https://docs.n8n.io/integrations/community-nodes/installation/) in the n8n community nodes documentation.
 
-1. [Generate a new repository](https://github.com/n8n-io/n8n-nodes-starter/generate) from this template repository.
-2. Clone your new repo:
-   ```
-   git clone https://github.com/<your organization>/<your-repo-name>.git
-   ```
-3. Run `pnpm i` to install dependencies.
-4. Open the project in your editor.
-5. Browse the examples in `/nodes` and `/credentials`. Modify the examples, or replace them with your own nodes.
-6. Update the `package.json` to match your details.
-7. Run `pnpm lint` to check for errors or `pnpm lintfix` to automatically fix errors when possible.
-8. Test your node locally. Refer to [Run your node locally](https://docs.n8n.io/integrations/creating-nodes/test/run-node-locally/) for guidance.
-9. Replace this README with documentation for your node. Use the [README_TEMPLATE](README_TEMPLATE.md) to get started.
-10. Update the LICENSE file to use your details.
-11. [Publish](https://docs.npmjs.com/packages-and-modules/contributing-packages-to-the-registry) your package to npm.
+Alternatively, for local development:
 
-## More information
+```bash
+pnpm install
+pnpm run build
+```
+Restart your n8n instance. The SwipeFlow node should now appear in the node list.
 
-Refer to our [documentation on creating nodes](https://docs.n8n.io/integrations/creating-nodes/) for detailed information on building your own nodes.
+## Credentials
 
-## License
+This node uses **API Key** authentication.
 
-[MIT](https://github.com/n8n-io/n8n-nodes-starter/blob/master/LICENSE.md)
+To generate an API key:
+1. Log in to your [SwipeFlow](https://swipeflow.io) account.
+2. Navigate to `Settings` → `API Keys`.
+3. Create a new API key or use an existing one.
+4. Enter the API key when configuring the SwipeFlow credentials in n8n.
+
+> 🔒 **Security Note**: Treat your API key like a password — it grants full access to your SwipeFlow workspace.
+
+## Operations
+
+The SwipeFlow node supports the following operations:
+
+- **Trigger**: Listen for item events using dynamic webhooks (create, update, delete, approve, reject, etc.)
+- **Item Operations**: Create, update, review and delete items
+- **Project Operations**: List, fetch, create, update, and delete projects
+- **Generic API Call**: Make any API call to the SwipeFlow REST API
+
+## Usage
+
+### Common Use Cases
+
+- **Approval Workflows**: Add manual approval checkpoints into any kind of automated processes.
+- **AI Content Review**: Route AI-generated content, e.g. media files, articles, blog posts, emails, product descriptions, newsletters for human validation before publishing. Request changes directly from SwipeFlow.
+- **Task Management**: Create, approve, or reject tasks that require human oversight.
+- **Compliance & Moderation**: Insert reviews for regulated or sensitive workflows to ensure compliance.
+- **Customer Requests**: Handle incoming customer service or onboarding requests that need a human decision.
+
+### Example Scenario
+
+1. A **scheduled trigger** in n8n starts an automated workflow to generate new product descriptions using **ChatGPT** (or another AI model).
+2. The generated content is passed to a **SwipeFlow → Create Item** node for human review and approval.
+3. A **reviewer** receives a real-time **notification** and swipes to **approve**, **reject**, or **request changes**.
+4. The **SwipeFlow → Webhook** node in n8n captures the reviewer's decision and triggers different branches based on the action taken:
+   - **Approved**: The content is automatically published to the target platform (e.g., CMS, eCommerce site).
+   - **Rejected**: The content is permanently rejected and not published.
+   - **Changes Requested**: The reviewer's comments are sent back to the AI model.
+     - A **new version** of the content is generated based on the feedback.
+     - The new version of the item is pushed back to **SwipeFlow** for another review.
+5. The cycle repeats until the content is **approved** or **rejected**.
+
+## Compatibility
+
+- Minimum n8n version: **1.89.0**
+- Tested with n8n versions: 1.89.x
+- No known compatibility issues.
+
+## Resources
+
+* [n8n community nodes documentation](https://docs.n8n.io/integrations/community-nodes/)
+* [SwipeFlow API Docs](https://swipeflow.io/api)
+* [SwipeFlow Website](https://swipeflow.io)
+
+## Version history
+
+- **1.0.0** — Initial release: Trigger node, item/project actions, generic API call support.
+
+---
+
+
+If you have feedback or issues, please open an issue in the repository or contact the [SwipeFlow team](mailto:support@swipeflow.io).

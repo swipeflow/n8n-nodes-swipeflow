@@ -1,19 +1,28 @@
 {
-  "name": "n8n-nodes-<...>",
+  "name": "n8n-nodes-swipeflow",
   "version": "0.1.0",
-  "description": "",
+  "description": "n8n community node for SwipeFlow",
   "keywords": [
+    "n8n",
+    "swipeflow",
+    "swipeflow.io",
+    "approval",
+    "human approval",
+    "human in the loop",
+    "workflow automation",
+    "wait for approval",
+    "send and wait for response",
     "n8n-community-node-package"
   ],
   "license": "MIT",
-  "homepage": "",
+  "homepage": "https://swipeflow.io",
   "author": {
-    "name": "",
-    "email": ""
+    "name": "SwipeFlow Team",
+    "email": "support@swipeflow.io"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/<...>/n8n-nodes-<...>.git"
+    "url": "https://github.com/swipeflow/n8n-nodes-swipeflow.git"
   },
   "engines": {
     "node": ">=18.10",
@@ -36,12 +45,11 @@
   "n8n": {
     "n8nNodesApiVersion": 1,
     "credentials": [
-      "dist/credentials/ExampleCredentialsApi.credentials.js",
-      "dist/credentials/HttpBinApi.credentials.js"
+      "dist/credentials/SwipeFlowApi.credentials.js"
     ],
     "nodes": [
-      "dist/nodes/ExampleNode/ExampleNode.node.js",
-      "dist/nodes/HttpBin/HttpBin.node.js"
+      "dist/nodes/SwipeFlow/SwipeFlow.node.js",
+      "dist/nodes/SwipeFlow/SwipeFlowTrigger.node.js"
     ]
   },
   "devDependencies": {
