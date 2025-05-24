@@ -57,6 +57,7 @@ export class SwipeflowTrigger implements INodeType {
           { name: 'Item Deleted', value: 'item.deleted' },
           { name: 'Item Rejected', value: 'item.rejected' },
           { name: 'Item Updated', value: 'item.updated' },
+          { name: 'Project Triggered', value: 'project.trigger' },
         ],
         default: ['item.approved', 'item.rejected'],
         description: 'Which item events to listen for',
@@ -156,25 +157,14 @@ export class SwipeflowTrigger implements INodeType {
 
     // Extract relevant information from the webhook payload
     this.logger.debug(`Received webhook payload: ${JSON.stringify(body)}`);
-    const { event, data } = body;
-    const item = (data as IDataObject).item as IDataObject;
-
-    if (!event || !item) {
-      throw new NodeOperationError(this.getNode(), 'Missing event or item data in webhook payload');
+    const { event, data, timestamp } = body;
+    
+    if (!event || !data) {
+      throw new NodeOperationError(this.getNode(), 'Missing event, item or projectId data in webhook payload');
     }
 
     // Log the received event for debugging
     this.logger.debug(`Received webhook event: ${event}`);
-
-    // --- Ensure metadata is an object ---
-    if (item.metadata && typeof item.metadata === 'string') {
-      try {
-        item.metadata = JSON.parse(item.metadata);
-      } catch (e) {
-        // Optionally log or throw if parsing fails
-        this.logger.warn('Failed to parse metadata as JSON');
-      }
-    }
 
     // Process the webhook based on the event type
     switch (event) {
@@ -183,14 +173,46 @@ export class SwipeflowTrigger implements INodeType {
       case 'item.deleted':
       case 'item.approved':
       case 'item.rejected':
-        // Return the processed data
+        const item = (data as IDataObject).item as IDataObject;
+        
+        // --- Ensure metadata is an object ---
+        if (item.metadata && typeof item.metadata === 'string') {
+          try {
+            item.metadata = JSON.parse(item.metadata);
+          } catch (e) {
+            // Optionally log or throw if parsing fails
+            this.logger.warn('Failed to parse metadata as JSON');
+          }
+        }
+
+        // Return item payload
         return {
           workflowData: [
             [
               {
                 json: {
                   event,
+                  timestamp,
                   item,
+                },
+              },
+            ],
+          ],
+        };
+      case 'project.trigger':
+        const { projectId, triggerName, triggerEvent, triggeredBy } = (data as IDataObject);
+        // Return trigger payload
+        return {
+          workflowData: [
+            [
+              {
+                json: {
+                  event,
+                  timestamp,
+                  projectId,
+                  triggerName,
+                  triggerEvent,
+                  triggeredBy,
                 },
               },
             ],
