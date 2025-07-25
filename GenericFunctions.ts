@@ -74,7 +74,7 @@ export async function getProjects(this: ILoadOptionsFunctions) {
 }
 
 export async function testCredential(this: ICredentialTestFunctions, credentials: SwipeFlowCredentials): Promise<INodeCredentialTestResult> {
-  const response = await apiRequestWithCredentials.call(this, credentials, 'GET', '/users/profile');
+  const response = await apiRequestWithCredentials.call(this, credentials, 'GET', '/users/me/profile');
   if (!response?.email) return { status: 'Error', message: 'Failed to fetch user profile' };
   return { status: 'OK', message: 'Successfully fetched user profile' };
 }
