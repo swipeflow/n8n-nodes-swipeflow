@@ -11,7 +11,7 @@ import {
   INodeCredentialTestResult,
   ICredentialTestFunctions,
 } from 'n8n-workflow';
-import { ICON, DOCS_URL, CREDENTIALS_NAME, apiRequest, getProjects, testCredential } from '../../GenericFunctions';
+import { ICON, DOCS_URL, CREDENTIALS_NAME, getProjects, testCredential, apiRequest } from '../../GenericFunctions';
 
 /**
  * Helper to ensure the correct type for method property
@@ -65,10 +65,10 @@ export class Swipeflow implements INodeType {
         noDataExpression: true,
         options: [
           { name: 'Create', value: 'create', description: 'Create a new item', action: 'Create a new item' },
+          { name: 'Delete Item', value: 'delete', description: 'Delete an item by ID', action: 'Delete item' },
           { name: 'Fetch Items', value: 'fetchAll', description: 'Fetch all items in a project', action: 'Fetch all items' },
           { name: 'Get Item', value: 'get', description: 'Get a single item by ID', action: 'Get item by ID' },
-          { name: 'Review Item', value: 'review', description: 'Push a review decision (approve/reject/revise) on an item', action: 'Review item' },
-          { name: 'Delete Item', value: 'delete', description: 'Delete an item by ID', action: 'Delete item' }
+          { name: 'Review Item', value: 'review', description: 'Push a review decision (approve/reject/revise) on an item', action: 'Review item' }
         ],
         default: 'create',
         required: true,
@@ -127,7 +127,7 @@ export class Swipeflow implements INodeType {
         },
         required: true,
         default: '',
-        description: 'Select a project to fetch, update, or delete. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
+        description: 'Select a project to fetch, update, or delete. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
       },
       // Project: Create/Update fields
       {
@@ -171,7 +171,7 @@ export class Swipeflow implements INodeType {
         },
         required: true,
         default: '',
-        description: 'Select a project from your SwipeFlow account. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
+        description: 'Select a project from your SwipeFlow account. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
       },
       // Item: Item ID (for get, review, delete)
       {
@@ -186,7 +186,25 @@ export class Swipeflow implements INodeType {
           },
         },
         default: '',
-        description: 'The unique identifier of the item.'
+        description: 'The unique identifier of the item'
+      },
+      // Item: Project ID (required for get and delete operations)
+      {
+        displayName: 'Project Name or ID',
+        name: 'projectId',
+        type: 'options',
+        typeOptions: {
+          loadOptionsMethod: 'getProjects',
+        },
+        displayOptions: {
+          show: {
+            resource: ['item'],
+            operation: ['get', 'delete']
+          },
+        },
+        required: true,
+        default: '',
+        description: 'Select the project containing this item. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
       },
       // Item: Decision (for review)
       {
@@ -206,14 +224,13 @@ export class Swipeflow implements INodeType {
           { name: 'Revise', value: 'revised' }
         ],
         default: 'approved',
-        description: 'The decision to set on the item.'
+        description: 'The decision to set on the item'
       },
       // Item: Decision comment (optional)
       {
         displayName: 'Comment',
         name: 'comment',
         type: 'string',
-        required: false,
         displayOptions: {
           show: {
             resource: ['item'],
@@ -221,7 +238,7 @@ export class Swipeflow implements INodeType {
           },
         },
         default: '',
-        description: 'Optional comment for the decision.'
+        description: 'Optional comment for the decision'
       },
       // Item: Create fields
       {
@@ -242,7 +259,6 @@ export class Swipeflow implements INodeType {
         displayName: 'Description',
         name: 'description',
         type: 'string',
-        required: false,
         default: '',
         description: 'A detailed description of the item',
         displayOptions: {
@@ -259,11 +275,11 @@ export class Swipeflow implements INodeType {
         required: true,
         default: 'text',
         options: [
-          { name: 'Text', value: 'text', description: 'Plain text content' },
+          { name: 'Audio', value: 'audio', description: 'Audio URL' },
           { name: 'HTML', value: 'html', description: 'HTML content' },
           { name: 'Image', value: 'image', description: 'Image URL' },
-          { name: 'Video', value: 'video', description: 'Video URL' },
-          { name: 'Audio', value: 'audio', description: 'Audio URL' },
+          { name: 'Text', value: 'text', description: 'Plain text content' },
+          { name: 'Video', value: 'video', description: 'Video URL' }
         ],
         description: 'The type of content this item contains',
         displayOptions: {
@@ -291,7 +307,6 @@ export class Swipeflow implements INodeType {
         displayName: 'Metadata (JSON)',
         name: 'metadata',
         type: 'json',
-        required: false,
         default: '',
         description: 'Optional JSON metadata for the item',
         displayOptions: {
@@ -305,7 +320,6 @@ export class Swipeflow implements INodeType {
         displayName: 'Expiration Date',
         name: 'expiresAt',
         type: 'dateTime',
-        required: false,
         default: '',
         description: 'Optional expiration date for the item',
         displayOptions: {
@@ -331,7 +345,7 @@ export class Swipeflow implements INodeType {
         },
         required: true,
         default: '',
-        description: 'Select a project from your SwipeFlow account. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
+        description: 'Select a project from your SwipeFlow account. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
       },
       {
         displayName: 'HTTP Method',
@@ -393,6 +407,7 @@ export class Swipeflow implements INodeType {
         description: 'Query params as JSON',
       },
     ],
+		usableAsTool: true,
   };
 
   methods = {
@@ -402,6 +417,7 @@ export class Swipeflow implements INodeType {
       }
     },
     credentialTest: {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       testCredential: async function (this: ICredentialTestFunctions, credential: any): Promise<INodeCredentialTestResult> {
         return testCredential.call(this, credential);
       }
@@ -426,29 +442,30 @@ export class Swipeflow implements INodeType {
           const contentType = this.getNodeParameter('contentType', i) as string;
           const content = this.getNodeParameter('content', i) as string;
           const metadata = this.getNodeParameter('metadata', i, {});
-          const expiresAt = this.getNodeParameter('expiresAt', i, '');
-          const response = await apiRequest.call(this, 'POST', `/projects/${projectId}/items`, {
+          
+          const response = await apiRequest.call(this, 'POST', `/v1/projects/${projectId}/items`, {
             title,
-            description,
+            description: (description as string) || undefined,
             content: {
               type: contentType,
               data: content
             },
-            metadata,
-            expiresAt,
+            metadata: metadata || undefined,
           });
           results.push({ json: response });
         }
         // Fetch Items
         else if (resource === 'item' && operation === 'fetchAll') {
           const projectId = this.getNodeParameter('projectId', i) as string;
-          const response = await apiRequest.call(this, 'GET', `/projects/${projectId}/items`);
-          results.push(...(Array.isArray(response) ? response.map((item: IDataObject) => ({ json: item })) : [{ json: response }]));
+          const response = await apiRequest.call(this, 'GET', `/v1/projects/${projectId}/items`);
+          const items = response.items || response;
+          results.push(...(Array.isArray(items) ? items.map((item: IDataObject) => ({ json: item })) : [{ json: response }]));
         }
         // Get Item
         else if (resource === 'item' && operation === 'get') {
+          const projectId = this.getNodeParameter('projectId', i) as string;
           const itemId = this.getNodeParameter('itemId', i) as string;
-          const response = await apiRequest.call(this, 'GET', `/items/${itemId}`);
+          const response = await apiRequest.call(this, 'GET', `/v1/projects/${projectId}/items/${itemId}`);
           results.push({ json: response });
         }
         // Review Item
@@ -457,36 +474,40 @@ export class Swipeflow implements INodeType {
           const itemId = this.getNodeParameter('itemId', i) as string;
           const decision = this.getNodeParameter('decision', i) as string;
           const comment = this.getNodeParameter('comment', i, '');
-          const response = await apiRequest.call(this, 'POST', `/projects/${projectId}/items/${itemId}/decisions`, {
+          
+          const response = await apiRequest.call(this, 'PUT', `/v1/projects/${projectId}/items/${itemId}/decision`, {
             decision,
-            comment,
+            comment: (comment as string) || undefined,
           });
           results.push({ json: response });
         }
         // Delete Item
         else if (resource === 'item' && operation === 'delete') {
+          const projectId = this.getNodeParameter('projectId', i) as string;
           const itemId = this.getNodeParameter('itemId', i) as string;
-          const response = await apiRequest.call(this, 'DELETE', `/items/${itemId}`);
-          results.push({ json: response });
+          await apiRequest.call(this, 'DELETE', `/v1/projects/${projectId}/items/${itemId}`);
+          results.push({ json: { success: true, itemId, projectId } });
         }
         // --- Project operations ---
         else if (resource === 'project') {
           if (operation === 'list') {
             // List Projects
-            const response = await apiRequest.call(this, 'GET', '/projects');
-            results.push(...(Array.isArray(response) ? response.map((project: IDataObject) => ({ json: project })) : [{ json: response }]));
+            const response = await apiRequest.call(this, 'GET', '/v1/projects');
+            const projects = response.projects || response;
+            results.push(...(Array.isArray(projects) ? projects.map((project: IDataObject) => ({ json: project })) : [{ json: response }]));
           } else if (operation === 'fetch') {
             // Fetch Project
             const projectId = this.getNodeParameter('projectId', i) as string;
-            const response = await apiRequest.call(this, 'GET', `/projects/${projectId}`);
+            const response = await apiRequest.call(this, 'GET', `/v1/projects/${projectId}`);
             results.push({ json: response });
           } else if (operation === 'create') {
             // Create Project
             const name = this.getNodeParameter('name', i) as string;
             const description = this.getNodeParameter('description', i, '');
-            const response = await apiRequest.call(this, 'POST', '/projects', {
+            
+            const response = await apiRequest.call(this, 'POST', '/v1/projects', {
               name,
-              description,
+              description: description as string,
             });
             results.push({ json: response });
           } else if (operation === 'update') {
@@ -494,16 +515,17 @@ export class Swipeflow implements INodeType {
             const projectId = this.getNodeParameter('projectId', i) as string;
             const name = this.getNodeParameter('name', i) as string;
             const description = this.getNodeParameter('description', i, '');
-            const response = await apiRequest.call(this, 'PUT', `/projects/${projectId}`, {
+            
+            const response = await apiRequest.call(this, 'PUT', `/v1/projects/${projectId}`, {
               name,
-              description,
+              description: (description as string) || undefined,
             });
             results.push({ json: response });
           } else if (operation === 'delete') {
             // Delete Project
             const projectId = this.getNodeParameter('projectId', i) as string;
-            const response = await apiRequest.call(this, 'DELETE', `/projects/${projectId}`);
-            results.push({ json: response });
+            await apiRequest.call(this, 'DELETE', `/v1/projects/${projectId}`);
+            results.push({ json: { success: true, projectId } });
           }
         }
         // --- Other: Generic API Call ---
@@ -513,6 +535,8 @@ export class Swipeflow implements INodeType {
           const body = this.getNodeParameter('body', i, {});
           const query = this.getNodeParameter('query', i, {});
           const queryObj: IDataObject | undefined = (typeof query === 'object' && query !== null && !Array.isArray(query)) ? query as IDataObject : undefined;
+          
+          // For generic API calls, use the original apiRequest function
           const response = await apiRequest.call(this, asHttpMethod(method) as IHttpRequestMethods, endpoint, body as IDataObject, queryObj);
           results.push({ json: response });
         }

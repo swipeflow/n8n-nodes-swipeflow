@@ -1,9 +1,9 @@
 {
-  "name": "n8n-nodes-swipeflow",
-  "version": "0.1.0",
+  "name": "@swipeflow/n8n-nodes-swipeflow",
+  "version": "0.1.6",
   "description": "n8n community node for SwipeFlow",
   "keywords": [
-    "n8n",
+    "n8n-community-node-package",
     "swipeflow",
     "swipeflow.io",
     "approval",
@@ -11,56 +11,42 @@
     "human in the loop",
     "workflow automation",
     "wait for approval",
-    "send and wait for response",
-    "n8n-community-node-package"
+    "send and wait for response"
   ],
   "license": "MIT",
   "homepage": "https://swipeflow.io",
-  "author": {
-    "name": "SwipeFlow Team",
-    "email": "support@swipeflow.io"
-  },
+  "author": { "name": "SwipeFlow Team", "email": "support@swipeflow.io" },
   "repository": {
     "type": "git",
     "url": "https://github.com/swipeflow/n8n-nodes-swipeflow.git"
   },
-  "engines": {
-    "node": ">=18.10",
-    "pnpm": ">=9.1"
-  },
-  "packageManager": "pnpm@9.1.4",
+  "engines": { "node": ">=18.10" },
   "main": "index.js",
   "scripts": {
-    "preinstall": "npx only-allow pnpm",
-    "build": "tsc && gulp build:icons",
-    "dev": "tsc --watch",
-    "format": "prettier nodes credentials --write",
-    "lint": "eslint nodes credentials package.json",
-    "lintfix": "eslint nodes credentials package.json --fix",
-    "prepublishOnly": "pnpm build && pnpm lint -c .eslintrc.prepublish.js nodes credentials package.json"
+    "build": "n8n-node build",
+    "build:watch": "tsc --watch",
+    "dev": "n8n-node dev",
+    "lint": "n8n-node lint",
+    "lint:fix": "n8n-node lint --fix",
+    "release": "n8n-node release",
+    "prepublishOnly": "n8n-node prerelease"
   },
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "n8n": {
     "n8nNodesApiVersion": 1,
-    "credentials": [
-      "dist/credentials/SwipeFlowApi.credentials.js"
-    ],
+    "strict": true,
+    "credentials": ["dist/credentials/SwipeFlowApi.credentials.js"],
     "nodes": [
-      "dist/nodes/SwipeFlow/SwipeFlow.node.js",
-      "dist/nodes/SwipeFlow/SwipeFlowTrigger.node.js"
+      "dist/nodes/SwipeFlow/Swipeflow.node.js",
+      "dist/nodes/SwipeFlow/SwipeflowTrigger.node.js"
     ]
   },
   "devDependencies": {
-    "@typescript-eslint/parser": "^7.15.0",
-    "eslint": "^8.56.0",
-    "eslint-plugin-n8n-nodes-base": "^1.16.1",
-    "gulp": "^4.0.2",
-    "prettier": "^3.3.2",
-    "typescript": "^5.5.3"
+    "@n8n/node-cli": "*",
+    "eslint": "^9.32.0",
+    "prettier": "3.6.2",
+    "release-it": "^19.0.4",
+    "typescript": "^5.9.3"
   },
-  "peerDependencies": {
-    "n8n-workflow": "*"
-  }
+  "peerDependencies": { "n8n-workflow": "*" }
 }

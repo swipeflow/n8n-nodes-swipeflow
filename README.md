@@ -79,8 +79,8 @@ The SwipeFlow node supports the following operations:
 
 ## Compatibility
 
-- Minimum n8n version: **1.89.0**
-- Tested with n8n versions: 1.89.x
+- Minimum n8n version: **1.118.0**
+- Tested with n8n versions: 1.118.x
 - No known compatibility issues.
 
 ## Resources

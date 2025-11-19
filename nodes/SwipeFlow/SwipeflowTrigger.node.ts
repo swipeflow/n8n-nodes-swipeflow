@@ -9,9 +9,9 @@ import {
   IDataObject,
   ICredentialTestFunctions,
   INodeCredentialTestResult,
-  NodeOperationError,
+  NodeOperationError
 } from 'n8n-workflow';
-import { ICON, DOCS_URL, CREDENTIALS_NAME, apiRequest, getProjects, WEBHOOK_INTEGRATION_PROVIDER, WEBHOOK_TYPE, testCredential } from '../../GenericFunctions';
+import { ICON, DOCS_URL, CREDENTIALS_NAME, getProjects, WEBHOOK_INTEGRATION_PROVIDER, WEBHOOK_TYPE, testCredential, apiRequest } from '../../GenericFunctions';
 
 export class SwipeflowTrigger implements INodeType {
   description: INodeTypeDescription = {
@@ -45,7 +45,7 @@ export class SwipeflowTrigger implements INodeType {
         },
         required: true,
         default: '',
-        description: 'Select a project from your SwipeFlow account. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>.',
+        description: 'Select a project from your SwipeFlow account. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
       },
       {
         displayName: 'Events',
@@ -72,6 +72,7 @@ export class SwipeflowTrigger implements INodeType {
         path: 'swipeflow',
       },
     ],
+		usableAsTool: true,
   };
 
   methods = {
@@ -81,6 +82,7 @@ export class SwipeflowTrigger implements INodeType {
       }
     },
     credentialTest: {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       testCredential: async function (this: ICredentialTestFunctions, credential: any): Promise<INodeCredentialTestResult> {
         return testCredential.call(this, credential);
       },
@@ -96,13 +98,15 @@ export class SwipeflowTrigger implements INodeType {
         // Check all the webhooks which exist already if it is identical to the
         // one that is supposed to get created.
         const projectId = this.getNodeParameter('projectId') as string;
-        const webhooks = await apiRequest.call(this, 'GET', `/projects/${projectId}/webhooks`);
-        this.logger.debug(`Fetched webhooks for project ${projectId}: ${JSON.stringify(webhooks)}`);
-        for (const webhook of webhooks) {
-          const sameEvents = webhook.events.length === events.length && webhook.events.every((event: string) => events.includes(event));
+        
+        const response = await apiRequest.call(this, 'GET', `/v1/projects/${projectId}/webhooks`);
+        const webhooks = response.webhooks || [];
+        for (const webhook of webhooks as IDataObject[]) {
+          const webhookEvents = Array.isArray(webhook.events) ? webhook.events as string[] : [];
+          const sameEvents = webhookEvents.length === events.length && webhookEvents.every((event: string) => events.includes(event));
           // Identical webhook already exists
           if (webhook.type === WEBHOOK_TYPE && webhook.integrationProvider === WEBHOOK_INTEGRATION_PROVIDER && webhook.url === webhookUrl && sameEvents) {
-            webhookData.webhookId = webhook._id as string;
+            webhookData.webhookId = webhook.id as string;
             webhookData.projectId = projectId;
             return true;
           }
@@ -120,17 +124,20 @@ export class SwipeflowTrigger implements INodeType {
 
         // Register new webhook
         const instanceBaseUrl = this.getInstanceBaseUrl().replace(/\/+$/, '');
-        const response = await apiRequest.call(this, 'POST', `/projects/${projectId}/webhooks`, {
-          url,
+
+        const webhookRequest = {
+          url: url!, // Non-null assertion - n8n guarantees this in webhook context
           name: this.getWorkflow().name || 'Project Webhook',
           events,
           type: WEBHOOK_TYPE,
           integrationProvider: WEBHOOK_INTEGRATION_PROVIDER,
           integrationLink: `${instanceBaseUrl}/workflow/${this.getWorkflow().id}`,
-        });
-        this.logger.debug(`Webhook registered with response: ${JSON.stringify(response)}`);
+        };
 
-        webhookData.webhookId = response._id as string;
+        const response = await apiRequest.call(this, 'POST', `/v1/projects/${projectId}/webhooks`, webhookRequest);
+        this.logger.debug('[SwipeFlow] Webhook created successfully');
+
+        webhookData.webhookId = response.id as string;
         webhookData.projectId = projectId;
         return true;
       },
@@ -140,8 +147,8 @@ export class SwipeflowTrigger implements INodeType {
         const projectId = webhookData.projectId as string;
         this.logger.debug(`Deleting webhook for project ${projectId} with webhookId ${webhookId}`);
         if (!webhookId) return true;
-        const response = await apiRequest.call(this, 'DELETE', `/projects/${projectId}/webhooks/${webhookId}`);
-        this.logger.debug(`Webhook deleted with response: ${JSON.stringify(response)}`);
+        await apiRequest.call(this, 'DELETE', `/v1/projects/${projectId}/webhooks/${webhookId}`);
+        this.logger.debug('[SwipeFlow] Webhook deleted successfully');
         return true;
       },
     },
@@ -172,14 +179,14 @@ export class SwipeflowTrigger implements INodeType {
       case 'item.updated':
       case 'item.deleted':
       case 'item.approved':
-      case 'item.rejected':
+      case 'item.rejected': {
         const item = (data as IDataObject).item as IDataObject;
         
         // --- Ensure metadata is an object ---
         if (item.metadata && typeof item.metadata === 'string') {
           try {
             item.metadata = JSON.parse(item.metadata);
-          } catch (e) {
+          } catch {
             // Optionally log or throw if parsing fails
             this.logger.warn('Failed to parse metadata as JSON');
           }
@@ -199,7 +206,8 @@ export class SwipeflowTrigger implements INodeType {
             ],
           ],
         };
-      case 'project.trigger':
+      }
+      case 'project.trigger': {
         const { projectId, triggerName, triggerEvent, triggeredBy } = (data as IDataObject);
         // Return trigger payload
         return {
@@ -218,6 +226,7 @@ export class SwipeflowTrigger implements INodeType {
             ],
           ],
         };
+      }
       default:
         throw new NodeOperationError(this.getNode(), `Unsupported event type: ${event}`);
     }
