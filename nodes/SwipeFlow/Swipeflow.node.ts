@@ -64,11 +64,14 @@ export class Swipeflow implements INodeType {
         type: 'options',
         noDataExpression: true,
         options: [
-          { name: 'Create', value: 'create', description: 'Create a new item', action: 'Create a new item' },
-          { name: 'Delete Item', value: 'delete', description: 'Delete an item by ID', action: 'Delete item' },
-          { name: 'Fetch Items', value: 'fetchAll', description: 'Fetch all items in a project', action: 'Fetch all items' },
-          { name: 'Get Item', value: 'get', description: 'Get a single item by ID', action: 'Get item by ID' },
-          { name: 'Review Item', value: 'review', description: 'Push a review decision (approve/reject/revise) on an item', action: 'Review item' }
+          { name: 'Approve', value: 'approve', description: 'Approve an item', action: 'Approve item' },
+          { name: 'Create', value: 'create', action: 'Create a new item', description: 'Create a new item' },
+          { name: 'Create Version', value: 'createVersion', description: 'Create a new version of an item', action: 'Create item version' },
+          { name: 'Delete', value: 'delete', description: 'Delete an item by ID', action: 'Delete item' },
+          { name: 'Get', value: 'get', description: 'Get a single item by ID', action: 'Get item by ID' },
+          { name: 'Get Many', value: 'getAll', description: 'Get many items in a project with filtering and sorting', action: 'Get items' },
+          { name: 'Reject', value: 'reject', description: 'Reject an item', action: 'Reject item' },
+          { name: 'Request Revision', value: 'requestRevision', description: 'Request revision of an item with comment', action: 'Request revision' },
         ],
         default: 'create',
         required: true,
@@ -155,7 +158,7 @@ export class Swipeflow implements INodeType {
           },
         },
       },
-      // Item: Project (for create, fetchAll, review)
+      // Item: Project (for create and getAll)
       {
         displayName: 'Project Name or ID',
         name: 'projectId',
@@ -166,14 +169,14 @@ export class Swipeflow implements INodeType {
         displayOptions: {
           show: {
             resource: ['item'],
-            operation: ['fetchAll', 'create', 'review']
+            operation: ['getAll', 'create']
           },
         },
         required: true,
         default: '',
         description: 'Select a project from your SwipeFlow account. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
       },
-      // Item: Item ID (for get, review, delete)
+      // Item: Item ID (for get, approve, reject, requestRevision, createVersion, delete)
       {
         displayName: 'Item ID',
         name: 'itemId',
@@ -182,13 +185,13 @@ export class Swipeflow implements INodeType {
         displayOptions: {
           show: {
             resource: ['item'],
-            operation: ['get', 'review', 'delete']
+            operation: ['get', 'approve', 'reject', 'requestRevision', 'createVersion', 'delete']
           },
         },
         default: '',
         description: 'The unique identifier of the item'
       },
-      // Item: Project ID (required for get and delete operations)
+      // Item: Project ID (required for get, delete, and createVersion operations)
       {
         displayName: 'Project Name or ID',
         name: 'projectId',
@@ -199,34 +202,14 @@ export class Swipeflow implements INodeType {
         displayOptions: {
           show: {
             resource: ['item'],
-            operation: ['get', 'delete']
+            operation: ['get', 'delete', 'approve', 'reject', 'requestRevision', 'createVersion']
           },
         },
         required: true,
         default: '',
         description: 'Select the project containing this item. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
       },
-      // Item: Decision (for review)
-      {
-        displayName: 'Decision',
-        name: 'decision',
-        type: 'options',
-        required: true,
-        displayOptions: {
-          show: {
-            resource: ['item'],
-            operation: ['review']
-          },
-        },
-        options: [
-          { name: 'Approve', value: 'approved' },
-          { name: 'Reject', value: 'rejected' },
-          { name: 'Revise', value: 'revised' }
-        ],
-        default: 'approved',
-        description: 'The decision to set on the item'
-      },
-      // Item: Decision comment (optional)
+      // Item: Decision comment (optional for approve/reject)
       {
         displayName: 'Comment',
         name: 'comment',
@@ -234,11 +217,225 @@ export class Swipeflow implements INodeType {
         displayOptions: {
           show: {
             resource: ['item'],
-            operation: ['review']
+            operation: ['approve', 'reject']
           },
         },
         default: '',
         description: 'Optional comment for the decision'
+      },
+      // Item: Decision comment (required for request revision)
+      {
+        displayName: 'Comment',
+        name: 'comment',
+        type: 'string',
+        required: true,
+        displayOptions: {
+          show: {
+            resource: ['item'],
+            operation: ['requestRevision']
+          },
+        },
+        default: '',
+        description: 'Required comment explaining what needs to be revised'
+      },
+      // Item: Create Version fields
+      {
+        displayName: 'Title',
+        name: 'title',
+        type: 'string',
+        displayOptions: {
+          show: {
+            resource: ['item'],
+            operation: ['createVersion']
+          },
+        },
+        default: '',
+        description: 'Updated title for the item (optional)'
+      },
+      {
+        displayName: 'Description',
+        name: 'description',
+        type: 'string',
+        displayOptions: {
+          show: {
+            resource: ['item'],
+            operation: ['createVersion']
+          },
+        },
+        default: '',
+        description: 'Updated description for the item (optional)'
+      },
+      {
+        displayName: 'Content Type',
+        name: 'contentType',
+        type: 'options',
+        displayOptions: {
+          show: {
+            resource: ['item'],
+            operation: ['createVersion']
+          },
+        },
+        options: [
+          { name: 'Audio URL', value: 'audio' },
+          { name: 'HTML', value: 'html' },
+          { name: 'Image URL', value: 'image' },
+          { name: 'Text', value: 'text' },
+          { name: 'Video URL', value: 'video' }
+        ],
+        default: 'text',
+        description: 'The type of content this item contains'
+      },
+      {
+        displayName: 'Content',
+        name: 'content',
+        type: 'string',
+        displayOptions: {
+          show: {
+            resource: ['item'],
+            operation: ['createVersion']
+          },
+        },
+        default: '',
+        description: 'Updated content for the item (optional)'
+      },
+      {
+        displayName: 'Metadata',
+        name: 'metadata',
+        type: 'json',
+        displayOptions: {
+          show: {
+            resource: ['item'],
+            operation: ['createVersion']
+          },
+        },
+        default: '',
+        description: 'Updated metadata for the item as JSON (optional)'
+      },
+      // Item: Include versions (optional for get operation)
+      {
+        displayName: 'Include All Versions',
+        name: 'includeVersions',
+        type: 'boolean',
+        displayOptions: {
+          show: {
+            resource: ['item'],
+            operation: ['get']
+          },
+        },
+        default: false,
+        description: 'Whether to include all versions of the item in the response'
+      },
+      // Item: Get Items filters and options
+      {
+        displayName: 'Status',
+        name: 'status',
+        type: 'options',
+        displayOptions: {
+          show: {
+            resource: ['item'],
+            operation: ['getAll']
+          },
+        },
+        options: [
+          { name: 'All', value: '' },
+          { name: 'Approved', value: 'approved' },
+          { name: 'Pending', value: 'pending' },
+          { name: 'Rejected', value: 'rejected' },
+          { name: 'Revised', value: 'revised' }
+        ],
+        default: '',
+        description: 'Filter items by status'
+      },
+      {
+        displayName: 'Search',
+        name: 'search',
+        type: 'string',
+        displayOptions: {
+          show: {
+            resource: ['item'],
+            operation: ['getAll']
+          },
+        },
+        default: '',
+        description: 'Search items by title, description, or content'
+      },
+      {
+        displayName: 'Sort By',
+        name: 'sortBy',
+        type: 'options',
+        displayOptions: {
+          show: {
+            resource: ['item'],
+            operation: ['getAll']
+          },
+        },
+        options: [
+          { name: 'Created At', value: 'createdAt' },
+          { name: 'Updated At', value: 'updatedAt' },
+          { name: 'Title', value: 'title' },
+          { name: 'Status', value: 'status' }
+        ],
+        default: 'createdAt',
+        description: 'Field to sort items by'
+      },
+      {
+        displayName: 'Sort Order',
+        name: 'sortOrder',
+        type: 'options',
+        displayOptions: {
+          show: {
+            resource: ['item'],
+            operation: ['getAll']
+          },
+        },
+        options: [
+          { name: 'Descending (Newest First)', value: 'desc' },
+          { name: 'Ascending (Oldest First)', value: 'asc' }
+        ],
+        default: 'desc',
+        description: 'Sort order for items'
+      },
+      {
+        displayName: 'Page',
+        name: 'page',
+        type: 'number',
+        displayOptions: {
+          show: {
+            resource: ['item'],
+            operation: ['getAll']
+          },
+        },
+        default: 1,
+        description: 'Page number for pagination'
+      },
+      {
+        displayName: 'Limit',
+        name: 'limit',
+        type: 'number',
+								typeOptions: {
+									minValue: 1,
+								},
+        displayOptions: {
+          show: {
+            resource: ['item'],
+            operation: ['getAll']
+          },
+        },
+        default: 50,
+        description: 'Max number of results to return'
+      },
+      {
+        displayName: 'Include All Versions',
+        name: 'includeVersions',
+        type: 'boolean',
+        displayOptions: {
+          show: {
+            resource: ['item'],
+            operation: ['getAll']
+          },
+        },
+        default: false,
+        description: 'Whether to include all versions for each item in the response'
       },
       // Item: Create fields
       {
@@ -454,10 +651,27 @@ export class Swipeflow implements INodeType {
           });
           results.push({ json: response });
         }
-        // Fetch Items
-        else if (resource === 'item' && operation === 'fetchAll') {
+        // Get Items
+        else if (resource === 'item' && operation === 'getAll') {
           const projectId = this.getNodeParameter('projectId', i) as string;
-          const response = await apiRequest.call(this, 'GET', `/v1/projects/${projectId}/items`);
+          const status = this.getNodeParameter('status', i, '') as string;
+          const search = this.getNodeParameter('search', i, '') as string;
+          const sortBy = this.getNodeParameter('sortBy', i, 'createdAt') as string;
+          const sortOrder = this.getNodeParameter('sortOrder', i, 'desc') as string;
+          const page = this.getNodeParameter('page', i, 1) as number;
+          const limit = this.getNodeParameter('limit', i, 10) as number;
+          const includeVersions = this.getNodeParameter('includeVersions', i, false) as boolean;
+          
+          const queryParams: IDataObject = {};
+          if (status) queryParams.status = status;
+          if (search) queryParams.search = search;
+          if (sortBy) queryParams.sortBy = sortBy;
+          if (sortOrder) queryParams.sortOrder = sortOrder;
+          if (page && page > 1) queryParams.page = page;
+          if (limit && limit !== 10) queryParams.limit = Math.min(limit, 100);
+          if (includeVersions) queryParams.includeVersions = true;
+          
+          const response = await apiRequest.call(this, 'GET', `/v1/projects/${projectId}/items`, {}, queryParams);
           const items = response.items || response;
           results.push(...(Array.isArray(items) ? items.map((item: IDataObject) => ({ json: item })) : [{ json: response }]));
         }
@@ -465,20 +679,72 @@ export class Swipeflow implements INodeType {
         else if (resource === 'item' && operation === 'get') {
           const projectId = this.getNodeParameter('projectId', i) as string;
           const itemId = this.getNodeParameter('itemId', i) as string;
-          const response = await apiRequest.call(this, 'GET', `/v1/projects/${projectId}/items/${itemId}`);
+          const includeVersions = this.getNodeParameter('includeVersions', i, false) as boolean;
+          
+          const queryParams = includeVersions ? { includeVersions: true } : {};
+          const response = await apiRequest.call(this, 'GET', `/v1/projects/${projectId}/items/${itemId}`, {}, queryParams);
           results.push({ json: response });
         }
-        // Review Item
-        else if (resource === 'item' && operation === 'review') {
+        // Approve Item
+        else if (resource === 'item' && operation === 'approve') {
           const projectId = this.getNodeParameter('projectId', i) as string;
           const itemId = this.getNodeParameter('itemId', i) as string;
-          const decision = this.getNodeParameter('decision', i) as string;
-          const comment = this.getNodeParameter('comment', i, '');
+          const comment = this.getNodeParameter('comment', i, '') as string;
           
           const response = await apiRequest.call(this, 'PUT', `/v1/projects/${projectId}/items/${itemId}/decision`, {
-            decision,
+            decision: 'approved',
             comment: (comment as string) || undefined,
           });
+          results.push({ json: response });
+        }
+        // Reject Item
+        else if (resource === 'item' && operation === 'reject') {
+          const projectId = this.getNodeParameter('projectId', i) as string;
+          const itemId = this.getNodeParameter('itemId', i) as string;
+          const comment = this.getNodeParameter('comment', i, '') as string;
+          
+          const response = await apiRequest.call(this, 'PUT', `/v1/projects/${projectId}/items/${itemId}/decision`, {
+            decision: 'rejected',
+            comment: (comment as string) || undefined,
+          });
+          results.push({ json: response });
+        }
+        // Request Revision
+        else if (resource === 'item' && operation === 'requestRevision') {
+          const projectId = this.getNodeParameter('projectId', i) as string;
+          const itemId = this.getNodeParameter('itemId', i) as string;
+          const comment = this.getNodeParameter('comment', i) as string;
+          
+          const response = await apiRequest.call(this, 'PUT', `/v1/projects/${projectId}/items/${itemId}/decision`, {
+            decision: 'revised',
+            comment: comment as string,
+          });
+          results.push({ json: response });
+        }
+        // Create Item Version
+        else if (resource === 'item' && operation === 'createVersion') {
+          const projectId = this.getNodeParameter('projectId', i) as string;
+          const itemId = this.getNodeParameter('itemId', i) as string;
+          const title = this.getNodeParameter('title', i, '') as string;
+          const description = this.getNodeParameter('description', i, '') as string;
+          const contentType = this.getNodeParameter('contentType', i, '') as string;
+          const content = this.getNodeParameter('content', i, '') as string;
+          const metadata = this.getNodeParameter('metadata', i, {}) as Record<string, unknown>;
+          
+          const versionData: IDataObject = {};
+          if (title) versionData.title = title;
+          if (description) versionData.description = description;
+          if (contentType && content) {
+            versionData.content = {
+              type: contentType,
+              data: content
+            };
+          }
+          if (metadata && Object.keys(metadata).length > 0) {
+            versionData.metadata = metadata;
+          }
+          
+          const response = await apiRequest.call(this, 'POST', `/v1/projects/${projectId}/items/${itemId}/versions`, versionData);
           results.push({ json: response });
         }
         // Delete Item
