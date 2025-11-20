@@ -56,6 +56,7 @@ export class SwipeflowTrigger implements INodeType {
           { name: 'Item Created', value: 'item.created' },
           { name: 'Item Deleted', value: 'item.deleted' },
           { name: 'Item Rejected', value: 'item.rejected' },
+          { name: 'Item Revised', value: 'item.revised' },
           { name: 'Item Updated', value: 'item.updated' },
           { name: 'Project Triggered', value: 'project.trigger' },
         ],
@@ -179,8 +180,10 @@ export class SwipeflowTrigger implements INodeType {
       case 'item.updated':
       case 'item.deleted':
       case 'item.approved':
-      case 'item.rejected': {
+      case 'item.rejected':
+      case 'item.revised': {
         const item = (data as IDataObject).item as IDataObject;
+        const decision = (data as IDataObject).decision as IDataObject;
         
         // --- Ensure metadata is an object ---
         if (item.metadata && typeof item.metadata === 'string') {
@@ -201,6 +204,7 @@ export class SwipeflowTrigger implements INodeType {
                   event,
                   timestamp,
                   item,
+                  ...(decision && { decision }),
                 },
               },
             ],
