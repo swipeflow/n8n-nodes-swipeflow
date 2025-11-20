@@ -96,21 +96,58 @@ export class SwipeflowTrigger implements INodeType {
         const webhookUrl = this.getNodeWebhookUrl('default');
         const webhookData = this.getWorkflowStaticData('node');
         const events = this.getNodeParameter('events') as string[];
-        // Check all the webhooks which exist already if it is identical to the
-        // one that is supposed to get created.
         const projectId = this.getNodeParameter('projectId') as string;
         
-        const response = await apiRequest.call(this, 'GET', `/v1/projects/${projectId}/webhooks`);
-        const webhooks = response.webhooks || [];
-        for (const webhook of webhooks as IDataObject[]) {
-          const webhookEvents = Array.isArray(webhook.events) ? webhook.events as string[] : [];
-          const sameEvents = webhookEvents.length === events.length && webhookEvents.every((event: string) => events.includes(event));
-          // Identical webhook already exists
-          if (webhook.type === WEBHOOK_TYPE && webhook.integrationProvider === WEBHOOK_INTEGRATION_PROVIDER && webhook.url === webhookUrl && sameEvents) {
-            webhookData.webhookId = webhook.id as string;
-            webhookData.projectId = projectId;
-            return true;
+        try {
+          // Get all webhooks for the project (backend returns array directly)
+          const response = await apiRequest.call(this, 'GET', `/v1/projects/${projectId}/webhooks`);
+          const webhooks = Array.isArray(response) ? response : [];
+          
+          if (webhooks.length === 0) {
+            this.logger.debug('[SwipeFlow] No existing webhooks found');
+            return false;
           }
+
+          // First, try to find an exact match (same URL and events)
+          for (const webhook of webhooks) {
+            const webhookEvents = Array.isArray(webhook.events) ? webhook.events as string[] : [];
+            const sameEvents = webhookEvents.length === events.length && 
+                              webhookEvents.every((event: string) => events.includes(event));
+            
+            // Exact match: same type, provider, URL, and events
+            if (webhook.type === WEBHOOK_TYPE && 
+                webhook.integrationProvider === WEBHOOK_INTEGRATION_PROVIDER && 
+                webhook.url === webhookUrl && 
+                sameEvents) {
+              this.logger.debug(`[SwipeFlow] Found exact matching webhook: ${webhook.id}`);
+              webhookData.webhookId = webhook.id as string;
+              webhookData.projectId = projectId;
+              return true;
+            }
+          }
+
+          // Second, try to find a webhook with the same URL but different events
+          // This can be reused by updating the events
+          for (const webhook of webhooks) {
+            if (webhook.type === WEBHOOK_TYPE && 
+                webhook.integrationProvider === WEBHOOK_INTEGRATION_PROVIDER && 
+                webhook.url === webhookUrl) {
+              this.logger.debug(`[SwipeFlow] Found webhook with same URL but different events: ${webhook.id}, will update events`);
+              
+              // Update the webhook with new events
+              await apiRequest.call(this, 'PUT', `/v1/projects/${projectId}/webhooks/${webhook.id}`, {
+                events,
+                active: true
+              });
+              
+              webhookData.webhookId = webhook.id as string;
+              webhookData.projectId = projectId;
+              return true;
+            }
+          }
+        } catch (error) {
+          this.logger.error(`[SwipeFlow] Error checking existing webhooks: ${error}`);
+          return false;
         }
 
         return false;
