@@ -1,6 +1,6 @@
 {
   "name": "@swipeflow/n8n-nodes-swipeflow",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "description": "n8n community node for SwipeFlow",
   "keywords": [
     "n8n-community-node-package",
