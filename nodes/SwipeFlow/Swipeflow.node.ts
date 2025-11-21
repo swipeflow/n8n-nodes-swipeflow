@@ -71,7 +71,7 @@ export class Swipeflow implements INodeType {
           { name: 'Get', value: 'get', description: 'Get a single item by ID', action: 'Get item by ID' },
           { name: 'Get Many', value: 'getAll', description: 'Get many items in a project with filtering and sorting', action: 'Get items' },
           { name: 'Reject', value: 'reject', description: 'Reject an item', action: 'Reject item' },
-          { name: 'Request Revision', value: 'requestRevision', description: 'Request revision of an item with comment', action: 'Request revision' },
+          { name: 'Request Changes', value: 'requestChanges', description: 'Request changes to an item with comment', action: 'Request changes' },
         ],
         default: 'create',
         required: true,
@@ -185,7 +185,7 @@ export class Swipeflow implements INodeType {
         displayOptions: {
           show: {
             resource: ['item'],
-            operation: ['get', 'approve', 'reject', 'requestRevision', 'createVersion', 'delete']
+            operation: ['get', 'approve', 'reject', 'requestChanges', 'createVersion', 'delete']
           },
         },
         default: '',
@@ -202,7 +202,7 @@ export class Swipeflow implements INodeType {
         displayOptions: {
           show: {
             resource: ['item'],
-            operation: ['get', 'delete', 'approve', 'reject', 'requestRevision', 'createVersion']
+            operation: ['get', 'delete', 'approve', 'reject', 'requestChanges', 'createVersion']
           },
         },
         required: true,
@@ -232,11 +232,11 @@ export class Swipeflow implements INodeType {
         displayOptions: {
           show: {
             resource: ['item'],
-            operation: ['requestRevision']
+            operation: ['requestChanges']
           },
         },
         default: '',
-        description: 'Required comment explaining what needs to be revised'
+        description: 'Required comment explaining what changes are needed'
       },
       // Item: Create Version fields
       {
@@ -339,9 +339,9 @@ export class Swipeflow implements INodeType {
         options: [
           { name: 'All', value: '' },
           { name: 'Approved', value: 'approved' },
+          { name: 'Change Requested', value: 'change_requested' },
           { name: 'Pending', value: 'pending' },
           { name: 'Rejected', value: 'rejected' },
-          { name: 'Revised', value: 'revised' }
         ],
         default: '',
         description: 'Filter items by status'
@@ -709,14 +709,14 @@ export class Swipeflow implements INodeType {
           });
           results.push({ json: response });
         }
-        // Request Revision
-        else if (resource === 'item' && operation === 'requestRevision') {
+        // Request Changes
+        else if (resource === 'item' && operation === 'requestChanges') {
           const projectId = this.getNodeParameter('projectId', i) as string;
           const itemId = this.getNodeParameter('itemId', i) as string;
           const comment = this.getNodeParameter('comment', i) as string;
           
           const response = await apiRequest.call(this, 'PUT', `/v1/projects/${projectId}/items/${itemId}/decision`, {
-            decision: 'revised',
+            decision: 'change_requested',
             comment: comment as string,
           });
           results.push({ json: response });

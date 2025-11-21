@@ -53,10 +53,10 @@ export class SwipeflowTrigger implements INodeType {
         type: 'multiOptions',
         options: [
           { name: 'Item Approved', value: 'item.approved' },
+          { name: 'Item Change Requested', value: 'item.change_requested' },
           { name: 'Item Created', value: 'item.created' },
           { name: 'Item Deleted', value: 'item.deleted' },
           { name: 'Item Rejected', value: 'item.rejected' },
-          { name: 'Item Revised', value: 'item.revised' },
           { name: 'Item Updated', value: 'item.updated' },
           { name: 'Project Triggered', value: 'project.trigger' },
         ],
@@ -218,7 +218,7 @@ export class SwipeflowTrigger implements INodeType {
       case 'item.deleted':
       case 'item.approved':
       case 'item.rejected':
-      case 'item.revised': {
+      case 'item.change_requested': {
         const item = (data as IDataObject).item as IDataObject;
         const decision = (data as IDataObject).decision as IDataObject;
         
