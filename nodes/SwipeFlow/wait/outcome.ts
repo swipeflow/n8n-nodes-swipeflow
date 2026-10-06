@@ -1,7 +1,7 @@
 import type { IDataObject } from 'n8n-workflow';
 import type { Item, ItemDecision } from '../sdk';
 
-export type WaitOutcome = 'approved' | 'rejected' | 'change_requested' | 'deleted';
+export type WaitOutcome = 'approved' | 'rejected' | 'change_requested' | 'deleted' | 'timed_out';
 
 const OUTCOME_BY_EVENT: Record<string, WaitOutcome> = {
 	'item.approved': 'approved',

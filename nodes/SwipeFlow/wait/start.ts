@@ -30,25 +30,21 @@ async function removeExpiredWaitWebhooks(
 }
 
 /**
- * Pauses the execution until `itemId` is decided.
- *
- * SwipeFlow has no per-item callback, so each wait registers a webhook on the project that
- * points at this execution's signed resume URL, then removes it when a decision arrives.
- * The item is re-read after registering: a decision made between creating the item and
- * registering the webhook would otherwise never be delivered.
+ * Registers the project webhook that resumes this execution when `itemId` is decided. The
+ * registration is idempotent per execution and item: a retried node, or a second wait on the
+ * same item in a loop, updates its webhook instead of adding another. Nothing is registered
+ * when `waitTill` has already passed.
  */
-export async function waitForDecision(
+export async function registerWait(
 	ctx: IExecuteFunctions,
 	client: SwipeFlowClient,
 	projectId: string,
 	itemId: string,
-): Promise<INodeExecutionData[][]> {
-	const waitTill = configureWaitTill(ctx);
+	waitTill: Date,
+): Promise<{ webhookId?: string; ours: Webhook[] }> {
 	const executionId = ctx.getExecutionId();
 
-	// Registering is idempotent per execution and item: a retried node, or a second wait on the
-	// same item in a loop, updates its webhook instead of adding another. If the list cannot be
-	// read, registering proceeds and may add one.
+	// If the list cannot be read, registering proceeds and may add one.
 	const known = await client.webhooks
 		.list(projectId, { type: WEBHOOK_TYPE, includeInactive: true })
 		.catch((): Webhook[] => []);
@@ -57,8 +53,6 @@ export async function waitForDecision(
 	);
 	const existing = ours.find((webhook) => isWaitWebhookFor(webhook.name, executionId, itemId));
 
-	// A limit that has already passed resumes the execution at once, so there is nothing to
-	// deliver to and a webhook would only be left behind.
 	let webhookId = existing?.id;
 	if (waitTill.getTime() > Date.now()) {
 		const registration = {
@@ -79,6 +73,26 @@ export async function waitForDecision(
 			webhookId = created.id;
 		}
 	}
+
+	return { webhookId, ours };
+}
+
+/**
+ * Pauses the execution until `itemId` is decided.
+ *
+ * SwipeFlow has no per-item callback, so each wait registers a webhook on the project that
+ * points at this execution's signed resume URL, then removes it when a decision arrives.
+ * The item is re-read after registering: a decision made between creating the item and
+ * registering the webhook would otherwise never be delivered.
+ */
+export async function waitForDecision(
+	ctx: IExecuteFunctions,
+	client: SwipeFlowClient,
+	projectId: string,
+	itemId: string,
+): Promise<INodeExecutionData[][]> {
+	const waitTill = configureWaitTill(ctx);
+	const { webhookId, ours } = await registerWait(ctx, client, projectId, itemId, waitTill);
 
 	const item = await client.items.get(projectId, itemId);
 	const outcome = outcomeFromStatus(item.status);

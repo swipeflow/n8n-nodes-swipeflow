@@ -42,6 +42,8 @@ Follow the [community nodes installation guide](https://docs.n8n.io/integrations
 
 **Time limit.** Turn on *Limit Wait Time* to continue after a while without a decision. The workflow then carries on with the node's input unchanged, as with n8n's own send-and-wait nodes, so there is no `decision` field. Test for that (for example an IF on `{{ $json.decision }}` being empty) to handle a timeout. The item stays pending in SwipeFlow.
 
+**Delivery mode.** *Webhook* (the default) has SwipeFlow call n8n when the decision is made, and the execution does not hold a worker. *Polling* has n8n check SwipeFlow every *Polling Interval* (at least 1 minute) until a decision or the *Limit Wait Time* is reached, so polling needs a time limit. Use polling when SwipeFlow cannot reach n8n; it holds a worker for the whole wait.
+
 **Things to know**
 
 - Only the first input item is used; an execution can be paused once per node. Put the node in a loop (for example Loop Over Items) to review many.
@@ -50,6 +52,12 @@ Follow the [community nodes installation guide](https://docs.n8n.io/integrations
   - A wait with a time limit that passes, or an execution cancelled after its limit, leaves its webhook behind until the next wait in the same project cleans it up.
   - A cancelled wait with no time limit leaves its webhook until you delete it under the project's webhooks in SwipeFlow. It points at a URL n8n no longer serves, so it does no harm beyond failed delivery entries in the webhook log.
 - Other events in the project also reach n8n while a wait is open; the node ignores everything except a decision on its own item.
+
+## SwipeFlow Approval node
+
+**SwipeFlow Approval** is the same approval step with one output per outcome: **Timed out**, **Approved**, **Rejected**, **Change requested** and **Always**. It appears under *Human review* in n8n's node picker, so no IF node is needed to branch on the decision. **Always** runs for every decision, which suits audit logging.
+
+**Timed out** runs when *Limit Wait Time* passes with no decision, in either delivery mode. Expiry on the SwipeFlow side is tracked in [swipeflow/swipeflow#424](https://github.com/swipeflow/swipeflow/issues/424) and will get its own output. See [docs/USAGE.md](docs/USAGE.md) for details and examples.
 
 ## SwipeFlow node
 

@@ -23,3 +23,14 @@ export function configureWaitTill(ctx: IExecuteFunctions): Date {
 	}
 	return waitTill;
 }
+
+/** Polling needs a deadline, or it would check forever, so it refuses to start without one. */
+export function configurePollingLimit(ctx: IExecuteFunctions): Date {
+	const waitTill = configureWaitTill(ctx);
+	if (waitTill.getTime() === WAIT_INDEFINITELY.getTime()) {
+		throw new NodeOperationError(ctx.getNode(), 'Polling needs a time limit', {
+			description: 'Turn on Limit Wait Time so that polling stops at a set time.',
+		});
+	}
+	return waitTill;
+}

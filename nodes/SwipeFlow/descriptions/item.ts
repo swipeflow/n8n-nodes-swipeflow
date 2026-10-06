@@ -2,7 +2,9 @@ import type { INodeProperties } from 'n8n-workflow';
 import {
 	CONTENT_HINT,
 	CONTENT_TYPE_OPTIONS,
+	deliveryProperties,
 	forV2,
+	waitLimitProperties,
 	projectLocator,
 	returnAllAndLimit,
 } from './common';
@@ -111,6 +113,40 @@ export const itemOperations: INodeProperties = {
 	],
 };
 
+export const createAdditionalOptions: INodeProperties['options'] = [
+	{
+		displayName: 'Expiration Date',
+		name: 'expiresAt',
+		type: 'dateTime',
+		default: '',
+		description: 'When the item stops being reviewable',
+	},
+	{
+		displayName: 'Idempotency Key',
+		name: 'idempotencyKey',
+		type: 'string',
+		default: '',
+		description:
+			'Retrying with the same key returns the original item instead of creating a duplicate. Defaults to one derived from the execution for Create and Wait for Decision.',
+	},
+	{
+		displayName: 'Media IDs',
+		name: 'mediaIds',
+		type: 'string',
+		default: '',
+		placeholder: 'e.g. 66f1f77bcf86cd799439099, 66f1f77bcf86cd79943909a',
+		description:
+			'Comma-separated IDs of uploaded media to attach, from the Media → Upload operation',
+	},
+	{
+		displayName: 'Metadata',
+		name: 'metadata',
+		type: 'json',
+		default: '{}',
+		description: 'Custom JSON object stored with the item and returned in events',
+	},
+];
+
 export const itemProperties: INodeProperties[] = [
 	projectLocator('item', ALL_OPERATIONS, 'The project the item belongs to'),
 	{
@@ -168,39 +204,7 @@ export const itemProperties: INodeProperties[] = [
 		placeholder: 'Add Field',
 		default: {},
 		displayOptions: forV2('item', ['create', 'sendAndWait']),
-		options: [
-			{
-				displayName: 'Expiration Date',
-				name: 'expiresAt',
-				type: 'dateTime',
-				default: '',
-				description: 'When the item stops being reviewable',
-			},
-			{
-				displayName: 'Idempotency Key',
-				name: 'idempotencyKey',
-				type: 'string',
-				default: '',
-				description:
-					'Retrying with the same key returns the original item instead of creating a duplicate. Defaults to one derived from the execution for Create and Wait for Decision.',
-			},
-			{
-				displayName: 'Media IDs',
-				name: 'mediaIds',
-				type: 'string',
-				default: '',
-				placeholder: 'e.g. 66f1f77bcf86cd799439099, 66f1f77bcf86cd79943909a',
-				description:
-					'Comma-separated IDs of uploaded media to attach, from the Media → Upload operation',
-			},
-			{
-				displayName: 'Metadata',
-				name: 'metadata',
-				type: 'json',
-				default: '{}',
-				description: 'Custom JSON object stored with the item and returned in events',
-			},
-		],
+		options: createAdditionalOptions,
 	},
 
 	// Create version
@@ -452,72 +456,6 @@ export const itemProperties: INodeProperties[] = [
 		],
 	},
 
-	// Waiting
-	{
-		displayName: 'Limit Wait Time',
-		name: 'limitWaitTime',
-		type: 'boolean',
-		default: false,
-		description: 'Whether to continue the workflow without a decision after a time limit',
-		displayOptions: forV2('item', WAIT_OPERATIONS),
-	},
-	{
-		displayName: 'Limit Type',
-		name: 'limitType',
-		type: 'options',
-		default: 'afterTimeInterval',
-		description: 'Sets how the wait time limit is defined',
-		options: [
-			{
-				name: 'After Time Interval',
-				value: 'afterTimeInterval',
-				description: 'Waits for a certain amount of time',
-			},
-			{
-				name: 'At Specified Time',
-				value: 'atSpecifiedTime',
-				description: 'Waits until a specific date and time',
-			},
-		],
-		displayOptions: forV2('item', WAIT_OPERATIONS, { limitWaitTime: [true] }),
-	},
-	{
-		displayName: 'Amount',
-		name: 'resumeAmount',
-		type: 'number',
-		typeOptions: { minValue: 0, numberPrecision: 2 },
-		default: 1,
-		description: 'The time to wait',
-		displayOptions: forV2('item', WAIT_OPERATIONS, {
-			limitWaitTime: [true],
-			limitType: ['afterTimeInterval'],
-		}),
-	},
-	{
-		displayName: 'Unit',
-		name: 'resumeUnit',
-		type: 'options',
-		default: 'hours',
-		description: 'Unit of the wait time',
-		options: [
-			{ name: 'Days', value: 'days' },
-			{ name: 'Hours', value: 'hours' },
-			{ name: 'Minutes', value: 'minutes' },
-		],
-		displayOptions: forV2('item', WAIT_OPERATIONS, {
-			limitWaitTime: [true],
-			limitType: ['afterTimeInterval'],
-		}),
-	},
-	{
-		displayName: 'Max Date and Time',
-		name: 'maxDateAndTime',
-		type: 'dateTime',
-		default: '',
-		description: 'Continue the workflow at this time if there is still no decision',
-		displayOptions: forV2('item', WAIT_OPERATIONS, {
-			limitWaitTime: [true],
-			limitType: ['atSpecifiedTime'],
-		}),
-	},
+	...waitLimitProperties(forV2('item', WAIT_OPERATIONS)),
+	...deliveryProperties(forV2('item', WAIT_OPERATIONS)),
 ];

@@ -2,6 +2,7 @@ import {
 	NodeApiError,
 	NodeConnectionTypes,
 	NodeOperationError,
+	type IDataObject,
 	type IExecuteFunctions,
 	type IHookFunctions,
 	type INodeExecutionData,
@@ -25,6 +26,9 @@ import { webhookOperations, webhookProperties } from './descriptions/webhook';
 import { getProjects, searchProjects } from './methods';
 import { CREDENTIALS_NAME, DOCS_URL, ICON } from './shared/constants';
 import { createClient } from './shared/transport';
+import { buildOutcome } from './wait/outcome';
+import { configurePollingLimit } from './wait/limit';
+import { pollUntilDecided } from './wait/poll';
 import { handleResume } from './wait/resume';
 import { waitForDecision } from './wait/start';
 
@@ -162,6 +166,8 @@ async function pauseUntilDecision(
 	ctx: IExecuteFunctions,
 	operation: 'sendAndWait' | 'wait',
 ): Promise<INodeExecutionData[][]> {
+	const polling = ctx.getNodeParameter('deliveryMode', 0, 'webhook') === 'polling';
+	const pollingDeadline = polling ? configurePollingLimit(ctx) : undefined;
 	const client = createClient(ctx);
 	const projectId = projectIdOf(ctx, 0);
 
@@ -174,6 +180,29 @@ async function pauseUntilDecision(
 			.id as string;
 	} else {
 		itemId = ctx.getNodeParameter('itemId', 0) as string;
+	}
+
+	if (pollingDeadline) {
+		const intervalMinutes = ctx.getNodeParameter('pollingIntervalMinutes', 0, 5) as number;
+		const decided = await pollUntilDecided(client, projectId, itemId, {
+			intervalMs: intervalMinutes * 60_000,
+			timeoutMs: Math.max(pollingDeadline.getTime() - Date.now(), 0),
+		});
+		// A timeout passes the input through, as a time-limited webhook wait does.
+		if (!decided) return [ctx.getInputData()];
+		return [
+			[
+				{
+					json: buildOutcome({
+						outcome: decided.outcome,
+						projectId,
+						itemId,
+						item: decided.item as IDataObject,
+					}),
+					pairedItem: { item: 0 },
+				},
+			],
+		];
 	}
 
 	return waitForDecision(ctx, client, projectId, itemId);

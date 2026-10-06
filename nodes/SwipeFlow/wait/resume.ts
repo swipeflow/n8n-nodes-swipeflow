@@ -1,8 +1,17 @@
-import type { IDataObject, IWebhookFunctions, IWebhookResponseData } from 'n8n-workflow';
+import type {
+	IDataObject,
+	INodeExecutionData,
+	IWebhookFunctions,
+	IWebhookResponseData,
+} from 'n8n-workflow';
 import { itemIdOf, type WebhookEnvelope } from '../shared/events';
 import { createClient } from '../shared/transport';
 import { isWaitWebhookFor } from './naming';
-import { buildOutcome, outcomeFromEvent } from './outcome';
+import { buildOutcome, outcomeFromEvent, type WaitOutcome } from './outcome';
+
+export type ResumeRouter = (outcome: WaitOutcome, json: IDataObject) => INodeExecutionData[][];
+
+const singleOutput: ResumeRouter = (_outcome, json) => [[{ json }]];
 
 /**
  * Called for every event on the project, since the wait webhook subscribes to the whole
@@ -10,7 +19,10 @@ import { buildOutcome, outcomeFromEvent } from './outcome';
  * else is acknowledged and dropped. n8n authenticates the call itself through the signed
  * resume URL, which also covers the `itemId` query parameter used here.
  */
-export async function handleResume(ctx: IWebhookFunctions): Promise<IWebhookResponseData> {
+export async function handleResume(
+	ctx: IWebhookFunctions,
+	router: ResumeRouter = singleOutput,
+): Promise<IWebhookResponseData> {
 	const envelope = ctx.getBodyData() as WebhookEnvelope;
 	const data = (
 		typeof envelope.data === 'object' && envelope.data !== null ? envelope.data : {}
@@ -33,9 +45,10 @@ export async function handleResume(ctx: IWebhookFunctions): Promise<IWebhookResp
 	await removeWaitWebhook(ctx, projectId, waitingFor).catch(() => undefined);
 
 	return {
-		workflowData: [
-			[{ json: buildOutcome({ outcome, projectId, itemId: waitingFor, item, decision }) }],
-		],
+		workflowData: router(
+			outcome,
+			buildOutcome({ outcome, projectId, itemId: waitingFor, item, decision }),
+		),
 	};
 }
 
