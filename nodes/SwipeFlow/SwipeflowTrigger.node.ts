@@ -1,275 +1,259 @@
 import {
-  INodeType,
-  INodeTypeDescription,
-  IWebhookFunctions,
-  IWebhookResponseData,
-  ILoadOptionsFunctions,
-  INodePropertyOptions,
-  IHookFunctions,
-  IDataObject,
-  ICredentialTestFunctions,
-  INodeCredentialTestResult,
-  NodeOperationError
+	NodeApiError,
+	NodeConnectionTypes,
+	NodeOperationError,
+	type IDataObject,
+	type IHookFunctions,
+	type INodeType,
+	type INodeTypeDescription,
+	type IWebhookFunctions,
+	type IWebhookResponseData,
+	type JsonObject,
 } from 'n8n-workflow';
-import { ICON, DOCS_URL, CREDENTIALS_NAME, getProjects, WEBHOOK_INTEGRATION_PROVIDER, WEBHOOK_TYPE, testCredential, apiRequest } from '../../GenericFunctions';
+import { V1, V2 } from './descriptions/common';
+import { WEBHOOK_EVENT_OPTIONS } from './descriptions/webhook';
+import { getProjects, searchProjects } from './methods';
+import type { WebhookEvent } from './sdk';
+import {
+	CREDENTIALS_NAME,
+	DOCS_URL,
+	ICON,
+	WEBHOOK_INTEGRATION_PROVIDER,
+	WEBHOOK_TYPE,
+} from './shared/constants';
+import { normalizeEvent, type WebhookEnvelope } from './shared/events';
+import {
+	EVENT_HEADER,
+	SIGNATURE_HEADER,
+	TIMESTAMP_HEADER,
+	generateSecret,
+	verifySignature,
+} from './shared/signature';
+import { createClient } from './shared/transport';
+
+const projectIdOf = (ctx: IHookFunctions | IWebhookFunctions) =>
+	ctx.getNodeParameter('projectId', '', { extractValue: true }) as string;
+const eventsOf = (ctx: IHookFunctions | IWebhookFunctions) =>
+	ctx.getNodeParameter('events') as WebhookEvent[];
+const managesSecret = (ctx: IHookFunctions) => ctx.getNode().typeVersion >= 2;
+
+function sameEvents(a: string[] = [], b: string[]): boolean {
+	return a.length === b.length && a.every((event) => b.includes(event));
+}
 
 export class SwipeflowTrigger implements INodeType {
-  description: INodeTypeDescription = {
-    displayName: 'SwipeFlow Trigger',
-    name: 'swipeflowTrigger',
-    icon: ICON,
-    documentationUrl: DOCS_URL,
-    group: ['trigger'],
-    version: 1,
-    description: 'Listen for events in SwipeFlow',
-    subtitle: '={{$parameter["events"]}}',
-    defaults: {
-      name: 'SwipeFlow Trigger',
-    },
-    inputs: [],
-    outputs: ['main'],
-    credentials: [
-      {
-        name: CREDENTIALS_NAME,
-        required: true,
-        testedBy: 'testCredential',
-      },
-    ],
-    properties: [
-      {
-        displayName: 'Project Name or ID',
-        name: 'projectId',
-        type: 'options',
-        typeOptions: {
-          loadOptionsMethod: 'getProjects',
-        },
-        required: true,
-        default: '',
-        description: 'Select a project from your SwipeFlow account. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code-examples/expressions/">expression</a>. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
-      },
-      {
-        displayName: 'Events',
-        name: 'events',
-        type: 'multiOptions',
-        options: [
-          { name: 'Item Approved', value: 'item.approved' },
-          { name: 'Item Change Requested', value: 'item.change_requested' },
-          { name: 'Item Created', value: 'item.created' },
-          { name: 'Item Deleted', value: 'item.deleted' },
-          { name: 'Item Rejected', value: 'item.rejected' },
-          { name: 'Item Updated', value: 'item.updated' },
-          { name: 'Project Triggered', value: 'project.trigger' },
-        ],
-        default: ['item.approved', 'item.rejected'],
-        description: 'Which item events to listen for',
-        required: true,
-      },
-    ],
-    webhooks: [
-      {
-        name: 'default',
-        httpMethod: 'POST',
-        responseMode: 'onReceived',
-        path: 'swipeflow',
-      },
-    ],
-		usableAsTool: true,
-  };
+	description: INodeTypeDescription = {
+		displayName: 'SwipeFlow Trigger',
+		name: 'swipeflowTrigger',
+		icon: ICON,
+		documentationUrl: DOCS_URL,
+		group: ['trigger'],
+		version: [1, 2],
+		defaultVersion: 2,
+		description: 'Starts the workflow when something happens in a SwipeFlow project',
+		subtitle: '={{$parameter["events"]}}',
+		defaults: { name: 'SwipeFlow Trigger' },
+		inputs: [],
+		outputs: [NodeConnectionTypes.Main],
+		credentials: [{ name: CREDENTIALS_NAME, required: true }],
+		webhooks: [
+			{ name: 'default', httpMethod: 'POST', responseMode: 'onReceived', path: 'swipeflow' },
+		],
+		properties: [
+			{
+				displayName: 'Project Name or ID',
+				name: 'projectId',
+				type: 'options',
+				typeOptions: { loadOptionsMethod: 'getProjects' },
+				required: true,
+				default: '',
+				description:
+					'Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>',
+				displayOptions: { show: V1 },
+			},
+			{
+				displayName: 'Project',
+				name: 'projectId',
+				type: 'resourceLocator',
+				required: true,
+				default: { mode: 'list', value: '' },
+				description: 'The project to listen to',
+				displayOptions: { show: V2 },
+				modes: [
+					{
+						displayName: 'From List',
+						name: 'list',
+						type: 'list',
+						typeOptions: { searchListMethod: 'searchProjects', searchable: true },
+					},
+					{
+						displayName: 'By ID',
+						name: 'id',
+						type: 'string',
+						placeholder: 'e.g. 507f1f77bcf86cd799439011',
+					},
+				],
+			},
+			{
+				displayName: 'Events',
+				name: 'events',
+				type: 'multiOptions',
+				required: true,
+				default: ['item.approved', 'item.rejected'],
+				options: WEBHOOK_EVENT_OPTIONS,
+				description: 'Which events to listen for',
+			},
+			{
+				displayName: 'Options',
+				name: 'options',
+				type: 'collection',
+				placeholder: 'Add Option',
+				default: {},
+				displayOptions: { show: V2 },
+				options: [
+					{
+						displayName: 'Verify Signature',
+						name: 'verifySignature',
+						type: 'boolean',
+						default: true,
+						description:
+							'Whether to reject deliveries that are not signed by SwipeFlow with this webhook’s secret',
+					},
+				],
+			},
+		],
+	};
 
-  methods = {
-    loadOptions: {
-      getProjects: async function (this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-        return getProjects.call(this);
-      }
-    },
-    credentialTest: {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      testCredential: async function (this: ICredentialTestFunctions, credential: any): Promise<INodeCredentialTestResult> {
-        return testCredential.call(this, credential);
-      },
-    },
-  };
+	methods = {
+		listSearch: { searchProjects },
+		loadOptions: { getProjects },
+	};
 
-  webhookMethods = {
-    default: {
-      async checkExists(this: IHookFunctions): Promise<boolean> {
-        const webhookUrl = this.getNodeWebhookUrl('default');
-        const webhookData = this.getWorkflowStaticData('node');
-        const events = this.getNodeParameter('events') as string[];
-        const projectId = this.getNodeParameter('projectId') as string;
-        
-        try {
-          // Get all webhooks for the project (backend returns array directly)
-          const response = await apiRequest.call(this, 'GET', `/v1/projects/${projectId}/webhooks`);
-          const webhooks = Array.isArray(response) ? response : [];
-          
-          if (webhooks.length === 0) {
-            this.logger.debug('[SwipeFlow] No existing webhooks found');
-            return false;
-          }
+	webhookMethods = {
+		default: {
+			async checkExists(this: IHookFunctions): Promise<boolean> {
+				const url = this.getNodeWebhookUrl('default');
+				const staticData = this.getWorkflowStaticData('node');
+				const projectId = projectIdOf(this);
+				const events = eventsOf(this);
+				const client = createClient(this);
 
-          // First, try to find an exact match (same URL and events)
-          for (const webhook of webhooks) {
-            const webhookEvents = Array.isArray(webhook.events) ? webhook.events as string[] : [];
-            const sameEvents = webhookEvents.length === events.length && 
-                              webhookEvents.every((event: string) => events.includes(event));
-            
-            // Exact match: same type, provider, URL, and events
-            if (webhook.type === WEBHOOK_TYPE && 
-                webhook.integrationProvider === WEBHOOK_INTEGRATION_PROVIDER && 
-                webhook.url === webhookUrl && 
-                sameEvents) {
-              this.logger.debug(`[SwipeFlow] Found exact matching webhook: ${webhook.id}`);
-              webhookData.webhookId = webhook.id as string;
-              webhookData.projectId = projectId;
-              return true;
-            }
-          }
+				// Inactive ones are included so a deactivated webhook is revived instead of duplicated.
+				const webhooks = await client.webhooks.list(projectId, {
+					type: WEBHOOK_TYPE,
+					includeInactive: true,
+				});
+				const existing = webhooks.find(
+					(webhook) =>
+						webhook.integrationProvider === WEBHOOK_INTEGRATION_PROVIDER && webhook.url === url,
+				);
+				if (!existing?.id) return false;
 
-          // Second, try to find a webhook with the same URL but different events
-          // This can be reused by updating the events
-          for (const webhook of webhooks) {
-            if (webhook.type === WEBHOOK_TYPE && 
-                webhook.integrationProvider === WEBHOOK_INTEGRATION_PROVIDER && 
-                webhook.url === webhookUrl) {
-              this.logger.debug(`[SwipeFlow] Found webhook with same URL but different events: ${webhook.id}, will update events`);
-              
-              // Update the webhook with new events
-              await apiRequest.call(this, 'PUT', `/v1/projects/${projectId}/webhooks/${webhook.id}`, {
-                events,
-                active: true
-              });
-              
-              webhookData.webhookId = webhook.id as string;
-              webhookData.projectId = projectId;
-              return true;
-            }
-          }
-        } catch (error) {
-          this.logger.error(`[SwipeFlow] Error checking existing webhooks: ${error}`);
-          return false;
-        }
+				staticData.webhookId = existing.id;
+				staticData.projectId = projectId;
 
-        return false;
-      },
-      async create(this: IHookFunctions): Promise<boolean> {
-        const webhookData = this.getWorkflowStaticData('node');
-        const projectId = this.getNodeParameter('projectId') as string;
-        const events = this.getNodeParameter('events') as string[];
-        const url = this.getNodeWebhookUrl('default');
+				// Without the secret we cannot verify deliveries, so replace the one SwipeFlow generated.
+				const secret = managesSecret(this)
+					? ((staticData.secret as string | undefined) ?? generateSecret())
+					: undefined;
+				const needsUpdate =
+					!existing.active ||
+					!sameEvents(existing.events, events) ||
+					(secret !== undefined && secret !== staticData.secret);
 
-        this.logger.debug(`Registering webhook for project ${projectId} with events ${events}, url ${url}`);
+				if (needsUpdate) {
+					await client.webhooks.update(projectId, existing.id, {
+						events,
+						active: true,
+						...(secret && { secret }),
+					});
+					if (secret) staticData.secret = secret;
+				}
+				return true;
+			},
 
-        // Register new webhook
-        const instanceBaseUrl = this.getInstanceBaseUrl().replace(/\/+$/, '');
+			async create(this: IHookFunctions): Promise<boolean> {
+				const staticData = this.getWorkflowStaticData('node');
+				const projectId = projectIdOf(this);
+				const secret = managesSecret(this) ? generateSecret() : undefined;
+				const workflow = this.getWorkflow();
 
-        const webhookRequest = {
-          url: url!, // Non-null assertion - n8n guarantees this in webhook context
-          name: this.getWorkflow().name || 'Project Webhook',
-          events,
-          type: WEBHOOK_TYPE,
-          integrationProvider: WEBHOOK_INTEGRATION_PROVIDER,
-          integrationLink: `${instanceBaseUrl}/workflow/${this.getWorkflow().id}`,
-        };
+				const webhook = await createClient(this).webhooks.create(projectId, {
+					name: workflow.name || 'n8n workflow',
+					url: this.getNodeWebhookUrl('default') as string,
+					events: eventsOf(this),
+					type: WEBHOOK_TYPE,
+					integrationProvider: WEBHOOK_INTEGRATION_PROVIDER,
+					integrationLink: `${this.getInstanceBaseUrl().replace(/\/+$/, '')}/workflow/${workflow.id}`,
+					...(secret && { secret }),
+				});
 
-        const response = await apiRequest.call(this, 'POST', `/v1/projects/${projectId}/webhooks`, webhookRequest);
-        this.logger.debug('[SwipeFlow] Webhook created successfully');
+				staticData.webhookId = webhook.id;
+				staticData.projectId = projectId;
+				if (secret) staticData.secret = secret;
+				return true;
+			},
 
-        webhookData.webhookId = response.id as string;
-        webhookData.projectId = projectId;
-        return true;
-      },
-      async delete(this: IHookFunctions): Promise<boolean> {
-        const webhookData = this.getWorkflowStaticData('node');
-        const webhookId = webhookData.webhookId as string;
-        const projectId = webhookData.projectId as string;
-        this.logger.debug(`Deleting webhook for project ${projectId} with webhookId ${webhookId}`);
-        if (!webhookId) return true;
-        await apiRequest.call(this, 'DELETE', `/v1/projects/${projectId}/webhooks/${webhookId}`);
-        this.logger.debug('[SwipeFlow] Webhook deleted successfully');
-        return true;
-      },
-    },
-  };
+			async delete(this: IHookFunctions): Promise<boolean> {
+				const staticData = this.getWorkflowStaticData('node');
+				const { webhookId, projectId } = staticData as { webhookId?: string; projectId?: string };
 
-  async webhook(this: IWebhookFunctions): Promise<IWebhookResponseData> {
-    // Handle incoming webhook event
-    const body = this.getBodyData();
-    // Validate the incoming webhook payload
-    if (!body || typeof body !== 'object') {
-      throw new NodeOperationError(this.getNode(), 'Invalid webhook payload');
-    }
+				if (webhookId && projectId) {
+					try {
+						await createClient(this).webhooks.delete(projectId, webhookId);
+					} catch (error) {
+						// Already gone, e.g. deleted from the SwipeFlow side.
+						if (!(error instanceof NodeApiError && String(error.httpCode) === '404'))
+							throw new NodeApiError(this.getNode(), error as JsonObject);
+					}
+				}
 
-    // Extract relevant information from the webhook payload
-    this.logger.debug(`Received webhook payload: ${JSON.stringify(body)}`);
-    const { event, data, timestamp } = body;
-    
-    if (!event || !data) {
-      throw new NodeOperationError(this.getNode(), 'Missing event, item or projectId data in webhook payload');
-    }
+				delete staticData.webhookId;
+				delete staticData.projectId;
+				delete staticData.secret;
+				return true;
+			},
+		},
+	};
 
-    // Log the received event for debugging
-    this.logger.debug(`Received webhook event: ${event}`);
+	async webhook(this: IWebhookFunctions): Promise<IWebhookResponseData> {
+		const res = this.getResponseObject();
+		const staticData = this.getWorkflowStaticData('node');
+		const verify =
+			this.getNode().typeVersion >= 2 &&
+			(this.getNodeParameter('options.verifySignature', true) as boolean);
 
-    // Process the webhook based on the event type
-    switch (event) {
-      case 'item.created':
-      case 'item.updated':
-      case 'item.deleted':
-      case 'item.approved':
-      case 'item.rejected':
-      case 'item.change_requested': {
-        const item = (data as IDataObject).item as IDataObject;
-        const decision = (data as IDataObject).decision as IDataObject;
-        
-        // --- Ensure metadata is an object ---
-        if (item.metadata && typeof item.metadata === 'string') {
-          try {
-            item.metadata = JSON.parse(item.metadata);
-          } catch {
-            // Optionally log or throw if parsing fails
-            this.logger.warn('Failed to parse metadata as JSON');
-          }
-        }
+		if (verify && typeof staticData.secret === 'string') {
+			const headers = this.getHeaderData();
+			const req = this.getRequestObject();
+			const check = verifySignature({
+				secret: staticData.secret,
+				rawBody: req.rawBody ?? JSON.stringify(req.body),
+				signature: headers[SIGNATURE_HEADER] as string | undefined,
+				timestamp: headers[TIMESTAMP_HEADER] as string | undefined,
+				event: headers[EVENT_HEADER] as string | undefined,
+			});
+			if (!check.valid) {
+				this.logger.warn(`Rejected a SwipeFlow delivery: ${check.reason}`);
+				res.status(401).json({ error: check.reason });
+				return { noWebhookResponse: true };
+			}
+		}
 
-        // Return item payload
-        return {
-          workflowData: [
-            [
-              {
-                json: {
-                  event,
-                  timestamp,
-                  item,
-                  ...(decision && { decision }),
-                },
-              },
-            ],
-          ],
-        };
-      }
-      case 'project.trigger': {
-        const { projectId, triggerName, triggerEvent, triggeredBy } = (data as IDataObject);
-        // Return trigger payload
-        return {
-          workflowData: [
-            [
-              {
-                json: {
-                  event,
-                  timestamp,
-                  projectId,
-                  triggerName,
-                  triggerEvent,
-                  triggeredBy,
-                },
-              },
-            ],
-          ],
-        };
-      }
-      default:
-        throw new NodeOperationError(this.getNode(), `Unsupported event type: ${event}`);
-    }
-  }
+		const envelope = this.getBodyData() as WebhookEnvelope;
+		const output = normalizeEvent(envelope);
+		if (!output) {
+			throw new NodeOperationError(this.getNode(), 'The request is not a SwipeFlow event', {
+				description: 'It has no event name or data',
+			});
+		}
+
+		const subscribed = eventsOf(this) as string[];
+		if (envelope.event !== 'test' && !subscribed.includes(envelope.event as string)) {
+			res.status(200).json({ ignored: true });
+			return { noWebhookResponse: true };
+		}
+
+		return { workflowData: [[{ json: output as IDataObject }]] };
+	}
 }

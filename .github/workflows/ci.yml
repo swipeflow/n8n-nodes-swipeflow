@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+# Cancel in-progress runs for the same branch/PR to avoid wasting CI minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  # For davelosert/vitest-coverage-report-action to post/update its PR comment. GitHub only
+  # grants this on pull_request runs from branches of this repo, not from forks — a fork PR's
+  # coverage still shows in the job's step summary, just not as a comment.
+  pull-requests: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    # Job-level, not step-level: a step's `if:` cannot see an env var set in that same step's
+    # own `env:` block, only job/workflow-level ones — and secrets can't be referenced in `if:`
+    # directly at all.
+    env:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Run tests with coverage
+        run: npm run test:coverage
+
+      # Free, no signup: posts/updates a sticky PR comment and a step summary from vitest's own
+      # json-summary report, using only the built-in GITHUB_TOKEN. Runs even if tests failed,
+      # so a coverage drop is visible alongside the failure.
+      - name: Report coverage
+        if: always()
+        uses: davelosert/vitest-coverage-report-action@v2
+
+      # Optional and non-blocking: only does anything once CODECOV_TOKEN is set on this repo
+      # (Settings -> Secrets and variables -> Actions). Gives history/trend graphs and a badge
+      # on top of the PR comment above, which needs no token and no external account.
+      - name: Upload coverage to Codecov
+        if: always() && env.CODECOV_TOKEN != ''
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ env.CODECOV_TOKEN }}
+          files: coverage/lcov.info
+          fail_ci_if_error: false
+
+      - name: Run build
+        run: npm run build

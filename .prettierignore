@@ -1,0 +1,8 @@
+dist
+node_modules
+package-lock.json
+pnpm-lock.yaml
+nodes/SwipeFlow/sdk/models
+nodes/SwipeFlow/sdk/models.ts
+nodes/SwipeFlow/sdk/media.ts
+nodes/SwipeFlow/sdk/VENDORED.md
