@@ -12,6 +12,10 @@ export type WebhookLog = {
      */
     webhookId?: string;
     /**
+     * The delivery this log entry belongs to. Absent for legacy pre-delivery-worker log rows.
+     */
+    deliveryId?: string | null;
+    /**
      * Event that triggered the webhook
      */
     event?: string;

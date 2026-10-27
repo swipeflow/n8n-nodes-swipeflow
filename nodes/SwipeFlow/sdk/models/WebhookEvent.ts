@@ -2,7 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /**
- * Webhook event type
+ * An event from the product's webhook-events.yaml
  */
 export enum WebhookEvent {
     ITEM_CREATED = 'item.created',

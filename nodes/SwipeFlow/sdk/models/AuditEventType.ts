@@ -2,7 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /**
- * Type of a recorded audit event. COMMENT_* and USER_LOGIN* values are reserved and not emitted yet.
+ * Type of a recorded audit event, from the product's audit-events.yaml.
  *
  */
 export enum AuditEventType {
@@ -21,6 +21,9 @@ export enum AuditEventType {
     WEBHOOK_CREATED = 'WEBHOOK_CREATED',
     WEBHOOK_UPDATED = 'WEBHOOK_UPDATED',
     WEBHOOK_DELETED = 'WEBHOOK_DELETED',
+    WEBHOOK_SECRET_ROTATED = 'WEBHOOK_SECRET_ROTATED',
+    WEBHOOK_REACTIVATED = 'WEBHOOK_REACTIVATED',
+    WEBHOOK_DELIVERY_REPLAYED = 'WEBHOOK_DELIVERY_REPLAYED',
     API_KEY_CREATED = 'API_KEY_CREATED',
     API_KEY_UPDATED = 'API_KEY_UPDATED',
     API_KEY_REVOKED = 'API_KEY_REVOKED',

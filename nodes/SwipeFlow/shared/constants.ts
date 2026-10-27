@@ -3,7 +3,7 @@ import { WebhookEvent } from '../sdk';
 
 export const CREDENTIALS_NAME = 'SwipeFlowApiKey';
 export const ICON: Icon = 'file:swipeflow.svg';
-export const DOCS_URL = 'https://swipeflow.io/docs';
+export const DOCS_URL = 'https://docs.swipeflow.io';
 export const DEFAULT_BASE_URL = 'https://api.swipeflow.io';
 
 export const WEBHOOK_TYPE = 'dynamic';

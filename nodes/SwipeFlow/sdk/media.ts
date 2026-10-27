@@ -4,7 +4,7 @@
  * containing item/version's own `media[]` at read time — never dereferenced directly.
  */
 
-const MEDIA_REF_PATTERN = /media:\/\/([0-9a-fA-F]{24})\b/g;
+const MEDIA_REF_PATTERN = /media:\/\/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}|[0-9a-fA-F]{24})\b/g;
 
 /** The canonical reference to embed in item content for a given media id. Always lowercase. */
 export function mediaRef(mediaId: string): string {

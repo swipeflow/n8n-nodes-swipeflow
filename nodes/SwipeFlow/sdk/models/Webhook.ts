@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { WebhookDeliveryHealth } from './WebhookDeliveryHealth';
 import type { WebhookEvent } from './WebhookEvent';
 export type Webhook = {
     /**
@@ -44,6 +45,7 @@ export type Webhook = {
      * Number of times webhook has been triggered
      */
     triggerCount?: number;
+    deliveryStatus?: WebhookDeliveryHealth;
     /**
      * Creation timestamp
      */

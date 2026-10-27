@@ -2,7 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /**
- * Type of content in an item
+ * Type of content in an item. `carousel` holds up to 20 image/video slides — see ItemContent.data
  */
 export enum ContentType {
     TEXT = 'text',
@@ -10,4 +10,5 @@ export enum ContentType {
     IMAGE = 'image',
     VIDEO = 'video',
     AUDIO = 'audio',
+    CAROUSEL = 'carousel',
 }
