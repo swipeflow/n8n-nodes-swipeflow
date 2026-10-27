@@ -112,7 +112,7 @@ describe('waitForDecision', () => {
 			integrationLink: 'https://n8n.test/workflow/wf1/executions/42',
 		});
 		expect(webhook.url).toBe(
-			`https://n8n.test/webhook-waiting/42/node-1?itemId=${itemId}&signature=sig`,
+			`https://n8n.test/webhook-waiting/42/node-1?itemId=${itemId}&wait=node-1%3A0&signature=sig`,
 		);
 		expect(webhook.name).toBe(`n8n wait exec=42 item=${itemId} until=none`);
 		expect(raw.putExecutionToWait).toHaveBeenCalledWith(WAIT_INDEFINITELY);
