@@ -15,6 +15,8 @@ type Options = {
 	webhookUrl?: string;
 	continueOnFail?: boolean;
 	executionId?: string;
+	nodeId?: string;
+	runIndex?: number;
 };
 
 const NODE = {
@@ -51,7 +53,7 @@ export function fakeContext(options: Options) {
 	);
 
 	const ctx = {
-		getNode: () => ({ ...NODE, typeVersion }),
+		getNode: () => ({ ...NODE, id: options.nodeId ?? NODE.id, typeVersion }),
 		getNodeParameter: (
 			name: string,
 			_index?: unknown,
@@ -85,7 +87,7 @@ export function fakeContext(options: Options) {
 		getSignedResumeUrl: (parameters: Record<string, string> = {}) =>
 			`https://n8n.test/webhook-waiting/42/node-1?${new URLSearchParams({ ...parameters, signature: 'sig' })}`,
 		getNodeWebhookUrl: () => options.webhookUrl ?? 'https://n8n.test/webhook/abc/swipeflow',
-		evaluateExpression: () => 0,
+		evaluateExpression: () => options.runIndex ?? 0,
 		putExecutionToWait: vi.fn(async () => undefined),
 		continueOnFail: () => options.continueOnFail ?? false,
 		getBodyData: () => body,

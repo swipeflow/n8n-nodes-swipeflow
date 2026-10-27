@@ -119,6 +119,21 @@ describe('waitForDecision', () => {
 		expect(output).toEqual([raw.getInputData()]);
 	});
 
+	it('signs a distinct resume URL for each wait on the same item in one execution', async () => {
+		const item = api.handle('POST', 'https://x/v1/projects/p1/items', {
+			body: { title: 'Post' },
+		}) as { id: string };
+		const wait = async (nodeId: string, runIndex: number) => {
+			const { ctx } = fakeContext({ api, nodeId, runIndex });
+			await waitForDecision(ctx, createClient(ctx), 'p1', item.id);
+			return [...api.webhooks.values()].at(-1)!.url;
+		};
+
+		const urls = [await wait('node-1', 0), await wait('node-2', 0), await wait('node-2', 1)];
+
+		expect(new Set(urls).size).toBe(3);
+	});
+
 	it('honours a time limit', async () => {
 		vi.useFakeTimers({ toFake: ['Date'] });
 		vi.setSystemTime(new Date('2026-09-21T12:00:00.000Z'));
