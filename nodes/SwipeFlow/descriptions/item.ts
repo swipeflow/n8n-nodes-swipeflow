@@ -25,6 +25,16 @@ const ITEM_ID_OPERATIONS = [
 
 const ALL_OPERATIONS = [...ITEM_ID_OPERATIONS, 'create', 'getAll', 'getNext', 'sendAndWait'];
 const WAIT_OPERATIONS = ['sendAndWait', 'wait'];
+const SIMPLIFIED_OPERATIONS = [
+	'approve',
+	'create',
+	'get',
+	'getAll',
+	'getNext',
+	'markProcessed',
+	'reject',
+	'requestChanges',
+];
 
 export const itemOperations: INodeProperties = {
 	displayName: 'Operation',
@@ -454,6 +464,15 @@ export const itemProperties: INodeProperties[] = [
 				],
 			},
 		],
+	},
+
+	{
+		displayName: 'Simplify',
+		name: 'simplify',
+		type: 'boolean',
+		default: true,
+		description: 'Whether to return a simplified version of the response instead of the raw data',
+		displayOptions: forV2('item', SIMPLIFIED_OPERATIONS),
 	},
 
 	...waitLimitProperties(forV2('item', WAIT_OPERATIONS)),

@@ -1,9 +1,36 @@
 import { NodeOperationError, type IDataObject, type IExecuteFunctions } from 'n8n-workflow';
-import { ContentType, UpdateItemDecisionRequest, type CreateItemInput } from '../sdk';
+import { ContentType, UpdateItemDecisionRequest, type CreateItemInput, type Item } from '../sdk';
 import { parseJsonParameter, splitIds } from '../shared/utils';
-import { collectPages, projectIdOf, type ActionHandler } from './params';
+import { collectPages, ExecutionItems, projectIdOf, type ActionHandler } from './params';
 
 const asData = (value: unknown) => value as IDataObject;
+
+export function simplifyItem(item: Item): IDataObject {
+	const decision = item.decisions?.[item.decisions.length - 1];
+	return {
+		id: item.id,
+		title: item.title,
+		status: item.status,
+		decision: decision?.decision,
+		comment: decision?.comment,
+		contentType: item.content?.type,
+		content: item.content?.data,
+		description: item.description,
+		version: item.version,
+		projectId: item.projectId,
+	};
+}
+
+const SIMPLIFIED = [
+	'create',
+	'get',
+	'getAll',
+	'getNext',
+	'approve',
+	'reject',
+	'requestChanges',
+	'markProcessed',
+];
 const itemIdOf = (ctx: IExecuteFunctions, i: number) => ctx.getNodeParameter('itemId', i) as string;
 
 export function buildCreateRequest(
@@ -57,7 +84,7 @@ function decide(decision: UpdateItemDecisionRequest.decision): ActionHandler {
 	};
 }
 
-export const itemActions: Record<string, ActionHandler> = {
+const rawItemActions: Record<string, ActionHandler> = {
 	create: async (ctx, client, i) =>
 		asData(await client.items.create(projectIdOf(ctx, i), buildCreateRequest(ctx, i))),
 
@@ -150,3 +177,19 @@ export const itemActions: Record<string, ActionHandler> = {
 			),
 		),
 };
+
+const simplified =
+	(handler: ActionHandler): ActionHandler =>
+	async (ctx, client, i) => {
+		const result = await handler(ctx, client, i);
+		if (!ctx.getNodeParameter('simplify', i, true)) return result;
+		if (Array.isArray(result)) return result.map((item) => simplifyItem(item as Item));
+		return result instanceof ExecutionItems ? result : simplifyItem(result as Item);
+	};
+
+export const itemActions: Record<string, ActionHandler> = Object.fromEntries(
+	Object.entries(rawItemActions).map(([name, handler]) => [
+		name,
+		SIMPLIFIED.includes(name) ? simplified(handler) : handler,
+	]),
+);

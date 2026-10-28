@@ -25,6 +25,57 @@ describe('item operations', () => {
 		expect(lastCall()).toMatchObject({ method: 'GET', path: '/v1/projects/p1/next-item' });
 	});
 
+	describe('simplify', () => {
+		const raw = {
+			id: 'i7',
+			projectId: 'p1',
+			title: 'Post',
+			description: 'Context',
+			content: { type: 'text', data: 'Hello' },
+			status: 'change_requested',
+			decisions: [
+				{ decision: 'approved', comment: 'ok' },
+				{ decision: 'change_requested', comment: 'shorter' },
+			],
+			metadata: { source: 'n8n' },
+			version: 2,
+			createdBy: 'u1',
+			actorName: 'n8n',
+			createdAt: 't0',
+			updatedAt: 't1',
+		};
+
+		it('flattens an item to at most ten fields, with the latest decision', async () => {
+			api.stub('GET', /items\/i7$/, raw);
+			const [out] = await exec({ ...item, operation: 'get' });
+			expect(out).toEqual({
+				id: 'i7',
+				title: 'Post',
+				status: 'change_requested',
+				decision: 'change_requested',
+				comment: 'shorter',
+				contentType: 'text',
+				content: 'Hello',
+				description: 'Context',
+				version: 2,
+				projectId: 'p1',
+			});
+			expect(Object.keys(out)).toHaveLength(10);
+		});
+
+		it('returns the raw item when turned off', async () => {
+			api.stub('GET', /items\/i7$/, raw);
+			expect(await exec({ ...item, operation: 'get', simplify: false })).toEqual([raw]);
+		});
+
+		it('leaves operations that return other shapes alone', async () => {
+			api.stub('GET', /items\/i7\/status$/, { id: 'i7', status: 'approved', version: 2 });
+			expect(await exec({ ...item, operation: 'getStatus' })).toEqual([
+				{ id: 'i7', status: 'approved', version: 2 },
+			]);
+		});
+	});
+
 	it('getStatus returns the slim status', async () => {
 		api.stub('GET', /items\/i7\/status$/, { id: 'i7', status: 'approved', version: 2 });
 		expect(await exec({ ...item, operation: 'getStatus' })).toEqual([
