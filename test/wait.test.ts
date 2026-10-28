@@ -1,11 +1,7 @@
 import { WAIT_INDEFINITELY } from 'n8n-workflow';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createClient } from '../nodes/SwipeFlow/shared/transport';
-import {
-	isExpiredWaitWebhook,
-	isWaitWebhookFor,
-	waitWebhookName,
-} from '../nodes/SwipeFlow/wait/naming';
+import { isWaitWebhookFor, waitWebhookName } from '../nodes/SwipeFlow/wait/naming';
 import { buildOutcome } from '../nodes/SwipeFlow/wait/outcome';
 import { handleResume } from '../nodes/SwipeFlow/wait/resume';
 import { waitForDecision } from '../nodes/SwipeFlow/wait/start';
@@ -13,17 +9,12 @@ import { fakeContext } from './helpers/context';
 import { FakeSwipeFlow } from './helpers/fakeApi';
 
 describe('wait webhook naming', () => {
-	const name = waitWebhookName('42', 'i1', WAIT_INDEFINITELY);
+	const name = waitWebhookName('42', 'i1');
 
-	it('fits SwipeFlow’s 100 character limit even with long ids and a time limit', () => {
-		expect(name.length).toBeLessThanOrEqual(100);
-		expect(
-			waitWebhookName(
-				'1234567890123',
-				'66f1f77bcf86cd799439099',
-				new Date('2026-09-22T10:00:00.000Z'),
-			).length,
-		).toBeLessThanOrEqual(100);
+	it('fits SwipeFlow’s 100 character limit even with long ids', () => {
+		expect(waitWebhookName('1234567890123', '66f1f77bcf86cd799439099').length).toBeLessThanOrEqual(
+			100,
+		);
 	});
 
 	it('is matched only by the execution and item it was made for', () => {
@@ -31,18 +22,6 @@ describe('wait webhook naming', () => {
 		expect(isWaitWebhookFor(name, '42', 'i2')).toBe(false);
 		expect(isWaitWebhookFor(name, '4', 'i1')).toBe(false);
 		expect(isWaitWebhookFor(undefined, '42', 'i1')).toBe(false);
-	});
-
-	it('is expired only once its time limit has passed', () => {
-		const limited = waitWebhookName('42', 'i1', new Date('2026-09-22T10:00:00.000Z'));
-		expect(isExpiredWaitWebhook(limited, Date.parse('2026-09-22T10:00:01.000Z'))).toBe(true);
-		expect(isExpiredWaitWebhook(limited, Date.parse('2026-09-22T09:59:59.000Z'))).toBe(false);
-	});
-
-	it('never expires a wait without a limit, or a webhook that is not one of ours', () => {
-		expect(isExpiredWaitWebhook(name, Date.now() + 1e12)).toBe(false);
-		expect(isExpiredWaitWebhook('My own webhook', Date.now())).toBe(false);
-		expect(isExpiredWaitWebhook(undefined, Date.now())).toBe(false);
 	});
 });
 
@@ -114,7 +93,7 @@ describe('waitForDecision', () => {
 		expect(webhook.url).toBe(
 			`https://n8n.test/webhook-waiting/42/node-1?signature=token&itemId=${itemId}`,
 		);
-		expect(webhook.name).toBe(`n8n wait exec=42 item=${itemId} until=none`);
+		expect(webhook.name).toBe(`n8n wait exec=42 item=${itemId}`);
 		expect(raw.putExecutionToWait).toHaveBeenCalledWith(WAIT_INDEFINITELY);
 		expect(output).toEqual([raw.getInputData()]);
 	});
@@ -146,7 +125,7 @@ describe('waitForDecision', () => {
 		});
 
 		expect(raw.putExecutionToWait).toHaveBeenCalledWith(new Date('2026-09-21T14:00:00.000Z'));
-		expect([...api.webhooks.values()][0].name).toContain('until=2026-09-21T14:00:00.000Z');
+		expect([...api.webhooks.values()][0].expiresAt).toBe('2026-09-21T14:00:00.000Z');
 	});
 
 	it('does not wait when the item was already decided, and leaves no webhook behind', async () => {
@@ -183,7 +162,7 @@ describe('waitForDecision', () => {
 		expect(api.webhooks.size).toBe(1);
 		expect(api.callsTo('POST', /\/webhooks$/)).toHaveLength(1);
 		const [webhook] = [...api.webhooks.values()];
-		expect(webhook.name).toMatch(/until=20\d\d-/);
+		expect(webhook.expiresAt).toMatch(/^20\d\d-/);
 		expect(webhook.url).toContain(`itemId=${itemId}`);
 	});
 
@@ -209,9 +188,9 @@ describe('waitForDecision', () => {
 		await waitForDecision(otherExecution.ctx, createClient(otherExecution.ctx), 'p1', itemId);
 		expect([...api.webhooks.values()].map((w) => w.name).sort()).toEqual(
 			[
-				`n8n wait exec=42 item=${itemId} until=none`,
-				`n8n wait exec=42 item=${other} until=none`,
-				`n8n wait exec=43 item=${itemId} until=none`,
+				`n8n wait exec=42 item=${itemId}`,
+				`n8n wait exec=42 item=${other}`,
+				`n8n wait exec=43 item=${itemId}`,
 			].sort(),
 		);
 	});
@@ -231,42 +210,33 @@ describe('waitForDecision', () => {
 		expect(context.raw.putExecutionToWait).toHaveBeenCalled();
 	});
 
-	it('removes wait webhooks whose time limit has passed, and nothing else', async () => {
-		const expired = waitWebhookName('7', 'old', new Date('2020-01-01T00:00:00.000Z'));
-		api.handle('POST', 'https://x/v1/projects/p1/webhooks', {
-			body: {
-				name: expired,
-				url: 'https://n8n.test/a',
-				events: [],
-				type: 'dynamic',
-				integrationProvider: 'n8n',
-			},
-		});
-		api.handle('POST', 'https://x/v1/projects/p1/webhooks', {
-			body: {
-				name: expired,
-				url: 'https://elsewhere/a',
-				events: [],
-				type: 'dynamic',
-				integrationProvider: 'zapier',
-			},
-		});
-		api.handle('POST', 'https://x/v1/projects/p1/webhooks', {
-			body: {
-				name: waitWebhookName('8', 'live', WAIT_INDEFINITELY),
-				url: 'https://n8n.test/b',
-				events: [],
-				type: 'dynamic',
-				integrationProvider: 'n8n',
-			},
-		});
-
+	it('sets no expiry on a wait without a time limit', async () => {
 		await start();
+		expect([...api.webhooks.values()][0].expiresAt ?? null).toBeNull();
+	});
 
-		const remaining = [...api.webhooks.values()].map((w) => w.url);
-		expect(remaining).not.toContain('https://n8n.test/a');
-		expect(remaining).toContain('https://elsewhere/a');
-		expect(remaining).toContain('https://n8n.test/b');
+	it('expires the webhook when the time limit passes, so SwipeFlow removes it', async () => {
+		await start({
+			limitWaitTime: true,
+			limitType: 'atSpecifiedTime',
+			maxDateAndTime: '2099-01-01T00:00:00Z',
+		});
+		expect([...api.webhooks.values()][0].expiresAt).toBe('2099-01-01T00:00:00.000Z');
+	});
+
+	it('moves the expiry when a retried wait registers again', async () => {
+		const { itemId } = await start({
+			limitWaitTime: true,
+			limitType: 'atSpecifiedTime',
+			maxDateAndTime: '2099-01-01T00:00:00Z',
+		});
+		await start(
+			{ limitWaitTime: true, limitType: 'atSpecifiedTime', maxDateAndTime: '2099-06-01T00:00:00Z' },
+			itemId,
+		);
+		const webhooks = [...api.webhooks.values()];
+		expect(webhooks).toHaveLength(1);
+		expect(webhooks[0].expiresAt).toBe('2099-06-01T00:00:00.000Z');
 	});
 
 	it('leaves no webhook behind when the time limit is already in the past', async () => {
@@ -278,21 +248,6 @@ describe('waitForDecision', () => {
 		expect(raw.putExecutionToWait).toHaveBeenCalledWith(new Date('2020-01-01T00:00:00Z'));
 		expect(api.webhooks.size).toBe(0);
 		expect(api.callsTo('POST', /\/webhooks$/)).toHaveLength(0);
-	});
-
-	it('still pauses if the cleanup of expired webhooks fails', async () => {
-		const context = fakeContext({ api });
-		const created = api.handle('POST', 'https://x/v1/projects/p1/items', {
-			body: { title: 'Post' },
-		}) as { id: string };
-		const original = api.handle.bind(api);
-		vi.spyOn(api, 'handle').mockImplementation((method, url, options) => {
-			if (method === 'GET' && url.endsWith('/webhooks')) throw api.error(500, 'boom');
-			return original(method, url, options);
-		});
-
-		await waitForDecision(context.ctx, createClient(context.ctx), 'p1', created.id);
-		expect(context.raw.putExecutionToWait).toHaveBeenCalled();
 	});
 });
 

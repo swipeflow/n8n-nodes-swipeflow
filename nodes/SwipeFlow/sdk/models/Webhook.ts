@@ -38,6 +38,10 @@ export type Webhook = {
      */
     events?: Array<WebhookEvent>;
     /**
+     * When set, the webhook stops receiving deliveries at this instant and is deleted shortly after. Absent for webhooks that never expire.
+     */
+    expiresAt?: string | null;
+    /**
      * Whether the webhook is active
      */
     active?: boolean;

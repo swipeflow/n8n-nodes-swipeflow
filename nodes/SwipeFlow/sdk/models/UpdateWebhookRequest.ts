@@ -23,5 +23,9 @@ export type UpdateWebhookRequest = {
      * Secret for webhook signature
      */
     secret?: string;
+    /**
+     * Must be in the future; null clears the expiry.
+     */
+    expiresAt?: string | null;
 };
 

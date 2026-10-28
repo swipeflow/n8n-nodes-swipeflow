@@ -1,8 +1,13 @@
-import type { IDataObject, IExecuteFunctions, INodeExecutionData } from 'n8n-workflow';
+import {
+	WAIT_INDEFINITELY,
+	type IDataObject,
+	type IExecuteFunctions,
+	type INodeExecutionData,
+} from 'n8n-workflow';
 import { WebhookEvent, type SwipeFlowClient, type Webhook } from '../sdk';
 import { DECISION_EVENTS, WEBHOOK_INTEGRATION_PROVIDER, WEBHOOK_TYPE } from '../shared/constants';
 import { configureWaitTill } from './limit';
-import { isExpiredWaitWebhook, isWaitWebhookFor, waitWebhookName } from './naming';
+import { isWaitWebhookFor, waitWebhookName } from './naming';
 import { buildOutcome, outcomeFromStatus } from './outcome';
 
 export const WAIT_EVENTS = [...DECISION_EVENTS, WebhookEvent.ITEM_DELETED];
@@ -23,25 +28,12 @@ function resumeUrlFor(ctx: IExecuteFunctions, itemId: string): string {
 	return `${path}/${ctx.getNode().id}?${query}`;
 }
 
-async function removeExpiredWaitWebhooks(
-	client: SwipeFlowClient,
-	projectId: string,
-	webhooks: Webhook[],
-): Promise<void> {
-	const now = Date.now();
-	const expired = webhooks.filter(
-		(webhook) => webhook.id && isExpiredWaitWebhook(webhook.name, now),
-	);
-	await Promise.allSettled(
-		expired.map((webhook) => client.webhooks.delete(projectId, webhook.id as string)),
-	);
-}
-
 /**
  * Registers the project webhook that resumes this execution when `itemId` is decided. The
  * registration is idempotent per execution and item: a retried node, or a second wait on the
- * same item in a loop, updates its webhook instead of adding another. Nothing is registered
- * when `waitTill` has already passed.
+ * same item in a loop, updates its webhook instead of adding another. A wait with a time limit
+ * sets the webhook's `expiresAt` to it, so SwipeFlow stops delivering and removes the webhook
+ * even if the execution is cancelled. Nothing is registered when `waitTill` has already passed.
  */
 export async function registerWait(
 	ctx: IExecuteFunctions,
@@ -49,7 +41,7 @@ export async function registerWait(
 	projectId: string,
 	itemId: string,
 	waitTill: Date,
-): Promise<{ webhookId?: string; ours: Webhook[] }> {
+): Promise<{ webhookId?: string }> {
 	const executionId = ctx.getExecutionId();
 
 	// If the list cannot be read, registering proceeds and may add one.
@@ -64,9 +56,10 @@ export async function registerWait(
 	let webhookId = existing?.id;
 	if (waitTill.getTime() > Date.now()) {
 		const registration = {
-			name: waitWebhookName(executionId, itemId, waitTill),
+			name: waitWebhookName(executionId, itemId),
 			url: resumeUrlFor(ctx, itemId),
 			events: WAIT_EVENTS,
+			expiresAt: waitTill.getTime() === WAIT_INDEFINITELY.getTime() ? null : waitTill.toISOString(),
 		};
 
 		if (webhookId) {
@@ -82,7 +75,7 @@ export async function registerWait(
 		}
 	}
 
-	return { webhookId, ours };
+	return { webhookId };
 }
 
 /**
@@ -100,7 +93,7 @@ export async function waitForDecision(
 	itemId: string,
 ): Promise<INodeExecutionData[][]> {
 	const waitTill = configureWaitTill(ctx);
-	const { webhookId, ours } = await registerWait(ctx, client, projectId, itemId, waitTill);
+	const { webhookId } = await registerWait(ctx, client, projectId, itemId, waitTill);
 
 	const item = await client.items.get(projectId, itemId);
 	const outcome = outcomeFromStatus(item.status);
@@ -116,7 +109,6 @@ export async function waitForDecision(
 		];
 	}
 
-	await removeExpiredWaitWebhooks(client, projectId, ours).catch(() => undefined);
 	await ctx.putExecutionToWait(waitTill);
 
 	// n8n resumes a timed-out wait by passing this node's input straight through, whatever is

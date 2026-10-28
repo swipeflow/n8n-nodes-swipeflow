@@ -132,7 +132,7 @@ describe('SwipeFlow Approval node', () => {
 
 		expect(raw.putExecutionToWait).toHaveBeenCalledWith(new Date('2026-10-06T12:02:00.000Z'));
 		expect(firedOutputs(outputs)).toEqual([]);
-		expect([...api.webhooks.values()][0].name).toContain('until=2026-10-06T12:02:00.000Z');
+		expect([...api.webhooks.values()][0].expiresAt).toBe('2026-10-06T12:02:00.000Z');
 	});
 
 	it('routes an already decided item immediately and removes its webhook', async () => {

@@ -19,5 +19,9 @@ export type CreateWebhookRequest = {
      * Secret for webhook signature
      */
     secret?: string;
+    /**
+     * Must be in the future. The webhook stops receiving deliveries at this instant and is deleted shortly after.
+     */
+    expiresAt?: string | null;
 };
 

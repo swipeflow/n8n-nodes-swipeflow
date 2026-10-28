@@ -128,7 +128,7 @@ Do not edit the copied files; refresh them after the API changes. `nodes/SwipeFl
 ## Resources
 
 - [n8n community nodes documentation](https://docs.n8n.io/integrations/community-nodes/)
-- [SwipeFlow API docs](https://swipeflow.io/api)
+- [SwipeFlow docs](https://docs.swipeflow.io) and [API reference](https://docs.swipeflow.io/api-reference)
 - [SwipeFlow](https://swipeflow.io)
 
 Questions or problems: open an issue or contact [support@swipeflow.io](mailto:support@swipeflow.io).
