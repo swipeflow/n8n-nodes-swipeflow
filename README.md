@@ -87,7 +87,7 @@ A call the key's scopes do not allow is refused by SwipeFlow with a 403.
 
 Pick projects from a searchable list or by ID. **Get Many** operations offer *Return All* and *Limit*.
 
-**Simplify.** Item operations that return an item (Create, Get, Get Many, Get Next Pending, Approve, Reject, Request Changes, Mark as Processed) return ten fields by default: `id`, `title`, `status`, `decision`, `comment`, `contentType`, `content`, `description`, `version` and `projectId`, where `decision` and `comment` come from the latest decision. Turn *Simplify* off for the full item, including versions, media, metadata and all decisions.
+**Simplify.** Item operations that return an item (Create, Get, Get Many, Get Next Pending, Approve, Reject, Request Changes, Mark as Processed) return ten fields by default: `id`, `title`, `status`, `decision`, `comment`, `contentType`, `content`, `description`, `version` and `projectId`, where `decision` and `comment` come from the latest decision. With *Include All Versions* on, `versions` is added. Turn *Simplify* off for the full item, including media, metadata and all decisions.
 
 **Images, video and audio.** Use **Media → Upload** on a binary file, then put the returned `ref` (`media://<id>`) in an item's *Content* (with *Content Type* Image, Video or Audio), or list the media ID under *Additional Fields → Media IDs*.
 

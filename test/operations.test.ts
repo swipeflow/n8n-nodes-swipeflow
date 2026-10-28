@@ -63,6 +63,14 @@ describe('item operations', () => {
 			expect(Object.keys(out)).toHaveLength(10);
 		});
 
+		it('keeps the versions when Include All Versions asked for them', async () => {
+			const versions = [{ version: 1 }, { version: 2 }];
+			api.stub('GET', /items\/i7$/, { ...raw, versions });
+			const [out] = await exec({ ...item, operation: 'get', options: { includeVersions: true } });
+			expect(out.versions).toEqual(versions);
+			expect(out.metadata).toBeUndefined();
+		});
+
 		it('returns the raw item when turned off', async () => {
 			api.stub('GET', /items\/i7$/, raw);
 			expect(await exec({ ...item, operation: 'get', simplify: false })).toEqual([raw]);

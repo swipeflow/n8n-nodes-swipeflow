@@ -18,6 +18,7 @@ export function simplifyItem(item: Item): IDataObject {
 		description: item.description,
 		version: item.version,
 		projectId: item.projectId,
+		...(item.versions && { versions: item.versions }),
 	};
 }
 
