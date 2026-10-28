@@ -91,6 +91,8 @@ Pick projects from a searchable list or by ID. **Get Many** operations offer *Re
 
 **Images, video and audio.** Use **Media → Upload** on a binary file, then put the returned `ref` (`media://<id>`) in an item's *Content* (with *Content Type* Image, Video or Audio), or list the media ID under *Additional Fields → Media IDs*.
 
+**Carousels.** Choose *Content Type* Carousel and set *Content* to JSON with 1 to 20 slides, for example `{"items": [{"type": "image", "url": "media://<id>", "caption": "Front"}, {"type": "video", "url": "https://example.com/clip.mp4"}]}`. Each slide's `url` is an https URL or a media reference, and `caption` and `alt` are optional. A bare list of slides works too.
+
 **Custom API Call** takes a path such as `projects/{projectId}/items` (the `/v1` prefix is added if missing). Full URLs are refused so the credential's API key can only go to SwipeFlow.
 
 The node can also be used as a tool by AI agents.

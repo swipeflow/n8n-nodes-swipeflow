@@ -109,6 +109,67 @@ describe('item operations', () => {
 		});
 	});
 
+	describe('carousel content', () => {
+		const slides = [
+			{ type: 'image', url: 'https://x/a.png', caption: 'A' },
+			{ type: 'video', url: 'media://m1' },
+		];
+		const create = (content: unknown) => ({
+			resource: 'item',
+			projectId: project,
+			operation: 'create',
+			title: 'Gallery',
+			contentType: 'carousel',
+			content,
+		});
+
+		beforeEach(() => api.stub('POST', /\/items$/, { id: 'i1' }));
+
+		it('sends a JSON object of slides as the stored JSON string', async () => {
+			await exec(create(JSON.stringify({ items: slides })));
+			expect(lastCall().body).toMatchObject({
+				content: { type: 'carousel', data: JSON.stringify({ items: slides }) },
+			});
+		});
+
+		it('wraps a bare list of slides', async () => {
+			await exec(create(JSON.stringify(slides)));
+			expect(lastCall().body).toMatchObject({
+				content: { type: 'carousel', data: JSON.stringify({ items: slides }) },
+			});
+		});
+
+		it('accepts slides from an expression as an object', async () => {
+			await exec(create({ items: slides }));
+			expect(lastCall().body).toMatchObject({
+				content: { data: JSON.stringify({ items: slides }) },
+			});
+		});
+
+		it('applies to a new version too', async () => {
+			api.stub('POST', /versions$/, { id: 'i7', version: 2 });
+			await exec({
+				...item,
+				operation: 'createVersion',
+				updateFields: { content: JSON.stringify(slides), contentType: 'carousel' },
+			});
+			expect(lastCall().body).toEqual({
+				content: { type: 'carousel', data: JSON.stringify({ items: slides }) },
+			});
+		});
+
+		it.each([
+			['invalid JSON', '{bad'],
+			['no slides', '{"items": []}'],
+			['not a list', '{"items": "x"}'],
+			['too many slides', JSON.stringify(Array.from({ length: 21 }, () => slides[0]))],
+		])('rejects %s', async (_name, content) => {
+			await expect(runNode({ api, params: create(content) }).result).rejects.toThrow(
+				NodeOperationError,
+			);
+		});
+	});
+
 	describe('createVersion', () => {
 		beforeEach(() => api.stub('POST', /versions$/, { id: 'i7', version: 2 }));
 

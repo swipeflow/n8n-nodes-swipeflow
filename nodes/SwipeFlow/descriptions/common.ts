@@ -70,6 +70,11 @@ export function returnAllAndLimit(resource: string, operations: string[]): INode
 
 export const CONTENT_TYPE_OPTIONS: INodeProperties['options'] = [
 	{ name: 'Audio', value: 'audio', description: 'An audio URL or media reference' },
+	{
+		name: 'Carousel',
+		value: 'carousel',
+		description: 'Up to 20 image or video slides, as JSON',
+	},
 	{ name: 'HTML', value: 'html', description: 'HTML content' },
 	{ name: 'Image', value: 'image', description: 'An image URL or media reference' },
 	{ name: 'Text', value: 'text', description: 'Plain text or markdown' },
@@ -77,7 +82,7 @@ export const CONTENT_TYPE_OPTIONS: INodeProperties['options'] = [
 ];
 
 export const CONTENT_HINT =
-	'For image, video and audio, provide an https URL or a media reference (media://<id>) from the Media → Upload operation. Text and HTML may embed media references inline.';
+	'For image, video and audio, provide an https URL or a media reference (media://<id>) from the Media → Upload operation. Text and HTML may embed media references inline. For a carousel, provide JSON such as {"items": [{"type": "image", "url": "https://…", "caption": "…"}]} with 1 to 20 slides; each url is an https URL or a media reference.';
 
 /** Delivery mode and polling settings for a node that waits on a decision. */
 /** Adds conditions to a node's base display options without dropping its existing ones. */

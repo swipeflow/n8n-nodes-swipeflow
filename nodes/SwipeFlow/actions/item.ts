@@ -1,6 +1,6 @@
 import { NodeOperationError, type IDataObject, type IExecuteFunctions } from 'n8n-workflow';
 import { ContentType, UpdateItemDecisionRequest, type CreateItemInput, type Item } from '../sdk';
-import { parseJsonParameter, splitIds } from '../shared/utils';
+import { carouselContent, parseJsonParameter, splitIds } from '../shared/utils';
 import { collectPages, ExecutionItems, projectIdOf, type ActionHandler } from './params';
 
 const asData = (value: unknown) => value as IDataObject;
@@ -34,6 +34,14 @@ const SIMPLIFIED = [
 ];
 const itemIdOf = (ctx: IExecuteFunctions, i: number) => ctx.getNodeParameter('itemId', i) as string;
 
+function contentOf(ctx: IExecuteFunctions, type: ContentType, data: unknown, i: number) {
+	return {
+		type,
+		data:
+			type === ContentType.CAROUSEL ? carouselContent(ctx.getNode(), data, i) : (data as string),
+	};
+}
+
 export function buildCreateRequest(
 	ctx: IExecuteFunctions,
 	i: number,
@@ -59,10 +67,12 @@ export function buildCreateRequest(
 	return {
 		title: ctx.getNodeParameter('title', i) as string,
 		...(description && { description }),
-		content: {
-			type: ctx.getNodeParameter('contentType', i) as ContentType,
-			data: ctx.getNodeParameter('content', i) as string,
-		},
+		content: contentOf(
+			ctx,
+			ctx.getNodeParameter('contentType', i) as ContentType,
+			ctx.getNodeParameter('content', i),
+			i,
+		),
 		...(mediaIds.length && { media: mediaIds }),
 		...(metadata && { metadata }),
 		...(expiresAt && { expiresAt }),
@@ -143,10 +153,12 @@ const rawItemActions: Record<string, ActionHandler> = {
 			...(fields.title && { title: fields.title as string }),
 			...(fields.description && { description: fields.description as string }),
 			...(fields.content && {
-				content: {
-					type: (fields.contentType as ContentType | undefined) ?? ContentType.TEXT,
-					data: fields.content as string,
-				},
+				content: contentOf(
+					ctx,
+					(fields.contentType as ContentType | undefined) ?? ContentType.TEXT,
+					fields.content,
+					i,
+				),
 			}),
 			...(mediaIds.length && { media: mediaIds }),
 			...(metadata && { metadata }),

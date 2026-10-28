@@ -49,3 +49,30 @@ export function toExecutionData(
 		itemData: { item: itemIndex },
 	});
 }
+
+const MAX_CAROUSEL_SLIDES = 20;
+
+/** Normalizes carousel content to the JSON string SwipeFlow stores: `{"items": [...]}` with 1 to 20 slides. */
+export function carouselContent(node: INode, value: unknown, itemIndex: number): string {
+	let parsed: unknown = value;
+	if (typeof value === 'string') {
+		try {
+			parsed = JSON.parse(value);
+		} catch (error) {
+			throw new NodeOperationError(node, 'Carousel content is not valid JSON', {
+				itemIndex,
+				description: (error as Error).message,
+			});
+		}
+	}
+
+	const items = Array.isArray(parsed) ? parsed : (parsed as { items?: unknown } | null)?.items;
+	if (!Array.isArray(items) || items.length < 1 || items.length > MAX_CAROUSEL_SLIDES) {
+		throw new NodeOperationError(node, 'Carousel content needs 1 to 20 slides', {
+			itemIndex,
+			description:
+				'Provide {"items": [{"type": "image", "url": "https://…"}]} or a list of slides.',
+		});
+	}
+	return JSON.stringify({ items });
+}
