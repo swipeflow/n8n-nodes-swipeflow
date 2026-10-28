@@ -1,6 +1,7 @@
 import type { INodeProperties } from 'n8n-workflow';
 import {
 	CONTENT_HINT,
+	contentProperties,
 	CONTENT_TYPE_OPTIONS,
 	deliveryProperties,
 	forV2,
@@ -69,7 +70,13 @@ export const itemOperations: INodeProperties = {
 			description: 'Submit a revised version of an item',
 			action: 'Create an item version',
 		},
-		{ name: 'Delete', value: 'delete', description: 'Delete an item', action: 'Delete an item' },
+		{
+			name: 'Delete',
+			value: 'delete',
+			description:
+				'Cancel a pending review by deleting its item. Items with decisions or versions are kept.',
+			action: 'Delete a pending item',
+		},
 		{ name: 'Get', value: 'get', description: 'Get an item by ID', action: 'Get an item' },
 		{
 			name: 'Get Many',
@@ -197,16 +204,7 @@ export const itemProperties: INodeProperties[] = [
 		description: 'How the reviewer should render the content',
 		displayOptions: forV2('item', ['create', 'sendAndWait']),
 	},
-	{
-		displayName: 'Content',
-		name: 'content',
-		type: 'string',
-		typeOptions: { rows: 4 },
-		required: true,
-		default: '',
-		description: CONTENT_HINT,
-		displayOptions: forV2('item', ['create', 'sendAndWait']),
-	},
+	...contentProperties(forV2('item', ['create', 'sendAndWait'])),
 	{
 		displayName: 'Additional Fields',
 		name: 'additionalFields',

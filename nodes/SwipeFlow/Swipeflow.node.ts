@@ -42,7 +42,7 @@ export class Swipeflow implements INodeType {
 		version: [1, 2],
 		defaultVersion: 2,
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
-		description: 'Add human approval to your workflows',
+		description: 'Human approval for your workflows: review, approve, reject or request changes',
 		defaults: { name: 'SwipeFlow' },
 		inputs: [NodeConnectionTypes.Main],
 		outputs: [NodeConnectionTypes.Main],

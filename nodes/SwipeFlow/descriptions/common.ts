@@ -81,8 +81,61 @@ export const CONTENT_TYPE_OPTIONS: INodeProperties['options'] = [
 	{ name: 'Video', value: 'video', description: 'A video URL or media reference' },
 ];
 
+const CAROUSEL_EXAMPLE =
+	'{"items": [{"type": "image", "url": "https://example.com/photo.jpg", "caption": "Front"}]}';
+
 export const CONTENT_HINT =
-	'For image, video and audio, provide an https URL or a media reference (media://<id>) from the Media → Upload operation. Text and HTML may embed media references inline. For a carousel, provide JSON such as {"items": [{"type": "image", "url": "https://…", "caption": "…"}]} with 1 to 20 slides; each url is an https URL or a media reference.';
+	'What the reviewer sees, depending on the Content Type:<br>' +
+	'• <b>Text</b> and <b>HTML</b>: the content itself<br>' +
+	'• <b>Image</b>, <b>video</b> and <b>audio</b>: an https URL or a <code>media://&lt;id&gt;</code> reference from Media → Upload<br>' +
+	'• <b>Carousel</b>: JSON with 1 to 20 slides, such as <code>' +
+	CAROUSEL_EXAMPLE.replace(/</g, '&lt;') +
+	'</code>';
+
+/**
+ * The Content input, one property per kind of content so each gets its own size, example and
+ * help. Their conditions do not overlap, so only one shows at a time.
+ */
+export function contentProperties(displayOptions: IDisplayOptions): INodeProperties[] {
+	const base = { displayName: 'Content', name: 'content', required: true, default: '' } as const;
+	return [
+		{
+			...base,
+			type: 'string',
+			typeOptions: { rows: 4 },
+			description:
+				'The text the reviewer sees. Markdown is supported. Embed uploaded media with <code>![alt](media://&lt;id&gt;)</code>.',
+			displayOptions: withShow(displayOptions, { contentType: ['text'] }),
+		},
+		{
+			...base,
+			type: 'string',
+			typeOptions: { rows: 6 },
+			description:
+				'The HTML the reviewer sees. Embed uploaded media by its <code>media://&lt;id&gt;</code> reference.',
+			displayOptions: withShow(displayOptions, { contentType: ['html'] }),
+		},
+		{
+			...base,
+			type: 'string',
+			placeholder: 'e.g. https://example.com/photo.jpg',
+			description:
+				'An https URL, or a <code>media://&lt;id&gt;</code> reference from <b>Media → Upload</b>',
+			displayOptions: withShow(displayOptions, { contentType: ['image', 'video', 'audio'] }),
+		},
+		{
+			...base,
+			type: 'string',
+			typeOptions: { rows: 8 },
+			placeholder: CAROUSEL_EXAMPLE,
+			description:
+				'JSON with 1 to 20 slides:<br><code>' +
+				CAROUSEL_EXAMPLE.replace(/</g, '&lt;') +
+				'</code><br>Each slide has a <code>type</code> (<code>image</code> or <code>video</code>) and a <code>url</code> (an https URL or a <code>media://&lt;id&gt;</code> reference). <code>caption</code> and <code>alt</code> are optional.',
+			displayOptions: withShow(displayOptions, { contentType: ['carousel'] }),
+		},
+	];
+}
 
 /** Delivery mode and polling settings for a node that waits on a decision. */
 /** Adds conditions to a node's base display options without dropping its existing ones. */

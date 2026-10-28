@@ -13,7 +13,7 @@ import { buildCreateRequest } from './actions/item';
 import { projectIdOf } from './actions/params';
 import { createAdditionalOptions } from './descriptions/item';
 import {
-	CONTENT_HINT,
+	contentProperties,
 	CONTENT_TYPE_OPTIONS,
 	deliveryProperties,
 	projectSelector,
@@ -55,8 +55,7 @@ export class SwipeflowApproval implements INodeType {
 		group: ['input'],
 		version: 1,
 		subtitle: '={{ "Human approval" }}',
-		description:
-			'Wait for a decision and route the item to Approved, Rejected or Change Requested',
+		description: 'Wait for a decision and route the item to Approved, Rejected or Change Requested',
 		defaults: { name: 'SwipeFlow Approval' },
 		codex: {
 			categories: ['HITL'],
@@ -103,15 +102,7 @@ export class SwipeflowApproval implements INodeType {
 				options: CONTENT_TYPE_OPTIONS,
 				description: 'How the reviewer should render the content',
 			},
-			{
-				displayName: 'Content',
-				name: 'content',
-				type: 'string',
-				typeOptions: { rows: 4 },
-				required: true,
-				default: '',
-				description: CONTENT_HINT,
-			},
+			...contentProperties({}),
 			...deliveryProperties({}),
 			...waitLimitProperties({}),
 			{
