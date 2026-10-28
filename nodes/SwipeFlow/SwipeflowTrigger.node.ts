@@ -50,7 +50,8 @@ export class SwipeflowTrigger implements INodeType {
 		group: ['trigger'],
 		version: [1, 2],
 		defaultVersion: 2,
-		description: 'Starts the workflow when a SwipeFlow review is created, decided or processed',
+		description:
+			'Start workflows on SwipeFlow events: review decisions, change requests, custom triggers, and more.',
 		subtitle: '={{$parameter["events"]}}',
 		defaults: { name: 'SwipeFlow Trigger' },
 		inputs: [],
