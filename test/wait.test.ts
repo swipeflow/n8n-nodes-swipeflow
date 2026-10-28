@@ -112,26 +112,27 @@ describe('waitForDecision', () => {
 			integrationLink: 'https://n8n.test/workflow/wf1/executions/42',
 		});
 		expect(webhook.url).toBe(
-			`https://n8n.test/webhook-waiting/42/node-1?itemId=${itemId}&wait=node-1%3A0&signature=sig`,
+			`https://n8n.test/webhook-waiting/42/node-1?signature=token&itemId=${itemId}`,
 		);
 		expect(webhook.name).toBe(`n8n wait exec=42 item=${itemId} until=none`);
 		expect(raw.putExecutionToWait).toHaveBeenCalledWith(WAIT_INDEFINITELY);
 		expect(output).toEqual([raw.getInputData()]);
 	});
 
-	it('signs a distinct resume URL for each wait on the same item in one execution', async () => {
-		const item = api.handle('POST', 'https://x/v1/projects/p1/items', {
-			body: { title: 'Post' },
-		}) as { id: string };
-		const wait = async (nodeId: string, runIndex: number) => {
-			const { ctx } = fakeContext({ api, nodeId, runIndex });
-			await waitForDecision(ctx, createClient(ctx), 'p1', item.id);
-			return [...api.webhooks.values()].at(-1)!.url;
-		};
+	it('signs the resume URL for Create and Wait, which n8n validates by HMAC', async () => {
+		await start({ operation: 'sendAndWait' });
 
-		const urls = [await wait('node-1', 0), await wait('node-2', 0), await wait('node-2', 1)];
+		expect([...api.webhooks.values()][0].url).toMatch(
+			/^https:\/\/n8n\.test\/webhook-waiting\/42\/node-1\?itemId=[^&]+&signature=sig$/,
+		);
+	});
 
-		expect(new Set(urls).size).toBe(3);
+	it('uses the execution resume token for Wait for Decision, which n8n validates by token', async () => {
+		const { itemId } = await start({ operation: 'wait' });
+
+		expect([...api.webhooks.values()][0].url).toBe(
+			`https://n8n.test/webhook-waiting/42/node-1?signature=token&itemId=${itemId}`,
+		);
 	});
 
 	it('honours a time limit', async () => {

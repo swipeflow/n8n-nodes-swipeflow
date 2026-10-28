@@ -8,17 +8,19 @@ import { buildOutcome, outcomeFromStatus } from './outcome';
 export const WAIT_EVENTS = [...DECISION_EVENTS, WebhookEvent.ITEM_DELETED];
 
 function resumeUrlFor(ctx: IExecuteFunctions, itemId: string): string {
-	// A second wait on the same item in one execution would otherwise sign an identical URL,
-	// which n8n rejects with "Invalid token" once the first has been used.
-	const runIndex = ctx.evaluateExpression('{{ $runIndex }}', 0) as number;
-	const wait = `${ctx.getNode().id}:${runIndex}`;
-	if (typeof ctx.getSignedResumeUrl === 'function') {
-		return ctx.getSignedResumeUrl({ itemId, wait });
+	// n8n checks the HMAC signature only for a node whose operation is sendAndWait; any other
+	// waiting node must present the execution's resume token, which $execution.resumeUrl carries.
+	const signed = ctx.getNodeParameter('operation', 0, '') === 'sendAndWait';
+	if (signed && typeof ctx.getSignedResumeUrl === 'function') {
+		return ctx.getSignedResumeUrl({ itemId });
 	}
 
-	// n8n versions that predate signed resume URLs.
 	const resumeUrl = ctx.evaluateExpression('{{ $execution.resumeUrl }}', 0) as string;
-	return `${resumeUrl}/${ctx.getNode().id}?itemId=${encodeURIComponent(itemId)}&wait=${encodeURIComponent(wait)}`;
+	const queryIndex = resumeUrl.indexOf('?');
+	const path = queryIndex === -1 ? resumeUrl : resumeUrl.slice(0, queryIndex);
+	const query = new URLSearchParams(queryIndex === -1 ? '' : resumeUrl.slice(queryIndex + 1));
+	query.set('itemId', itemId);
+	return `${path}/${ctx.getNode().id}?${query}`;
 }
 
 async function removeExpiredWaitWebhooks(
