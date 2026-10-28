@@ -1,0 +1,508 @@
+{
+  "name": "SwipeFlow test – 3. Wait for decision (needs a human swipe)",
+  "description": "Create and Wait for Decision with a 10 minute limit, routed by decision. A change request loops through Create Version and Wait for Decision. Swipe the item in the SwipeFlow app: approve, reject or request changes, or leave it to test the timeout.",
+  "nodes": [
+    {
+      "id": "96f84834-8684-5beb-9407-d6444004e92d",
+      "name": "Start",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "1aa37a96-8ed4-523a-87be-4da6e8368c63",
+      "name": "Create and wait for decision",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "resource": "item",
+        "operation": "sendAndWait",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "title": "=Wait test {{ $now.toFormat(\"HH:mm:ss\") }}",
+        "description": "Swipe this: approve, reject, or request changes. Leave it for 10 minutes to test the timeout.",
+        "contentType": "html",
+        "content": "<h2>Wait for decision test</h2><p>Draft v1</p>",
+        "additionalFields": {
+          "metadata": {
+            "source": "n8n-wait-test"
+          }
+        },
+        "limitWaitTime": true,
+        "limitType": "afterTimeInterval",
+        "resumeAmount": 10,
+        "resumeUnit": "minutes"
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "2182dd75-b08f-531e-a0c5-d821eec32c3a",
+      "name": "Route by decision",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "outputKey": "approved",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.decision || \"\" }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "rightValue": "approved"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "rejected",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.decision || \"\" }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "rightValue": "rejected"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "change_requested",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.decision || \"\" }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "rightValue": "change_requested"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "deleted",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.decision || \"\" }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "rightValue": "deleted"
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "timeout (no decision)"
+        }
+      }
+    },
+    {
+      "id": "d8ae1e82-87b1-5065-a78c-94a5c9d12349",
+      "name": "Result: rejected",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        672,
+        192
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "result",
+              "value": "rejected",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "approvedFlag",
+              "value": "={{ $json.approved }}",
+              "type": "boolean"
+            },
+            {
+              "id": "a3",
+              "name": "comment",
+              "value": "={{ $json.comment ?? \"\" }}",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "4ba4c2d8-e16b-59fb-9d3c-f63944fa9379",
+      "name": "Mark processed",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "resource": "item",
+        "operation": "markProcessed",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "itemId": "={{ $json.itemId }}",
+        "options": {
+          "action": "wait test: approved path ran"
+        }
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "724dd644-202e-595b-8d57-ef89cffa2e92",
+      "name": "Result: approved",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        896,
+        0
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "result",
+              "value": "approved",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "approvedFlag",
+              "value": "={{ $(\"Route by decision\").item.json.approved }}",
+              "type": "boolean"
+            },
+            {
+              "id": "a3",
+              "name": "comment",
+              "value": "={{ $(\"Route by decision\").item.json.comment ?? \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "a4",
+              "name": "decidedBy",
+              "value": "={{ $(\"Route by decision\").item.json.decidedBy ?? \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "a5",
+              "name": "processedAction",
+              "value": "={{ $json.processed?.action ?? \"\" }}",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "b2c34f91-a487-59a9-be5a-a286153e3d65",
+      "name": "Revise (create version)",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        672,
+        384
+      ],
+      "parameters": {
+        "resource": "item",
+        "operation": "createVersion",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "itemId": "={{ $json.itemId }}",
+        "updateFields": {
+          "content": "=<h2>Wait for decision test</h2><p>Draft v2 – reviewer said: {{ $json.comment }}</p>",
+          "contentType": "html"
+        }
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "1b53f3a2-eeb2-52ed-87b6-905fc33272f6",
+      "name": "Wait for decision (v2)",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        896,
+        384
+      ],
+      "parameters": {
+        "resource": "item",
+        "operation": "wait",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "itemId": "={{ $json.id }}",
+        "limitWaitTime": true,
+        "limitType": "afterTimeInterval",
+        "resumeAmount": 10,
+        "resumeUnit": "minutes"
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "dfea030b-0719-51fc-9db5-85294d3c9ae0",
+      "name": "Result: after revision",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1120,
+        384
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "result",
+              "value": "=revision → {{ $json.decision ?? \"timeout\" }}",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "itemId",
+              "value": "={{ $json.itemId ?? \"\" }}",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "99647ca6-124f-5554-b5aa-f4ccd9e2e0ee",
+      "name": "Result: deleted while waiting",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        672,
+        576
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "result",
+              "value": "deleted",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "6437fbda-714d-5098-ab8a-88e3d1b85745",
+      "name": "Result: timeout",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        672,
+        768
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "result",
+              "value": "timeout",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "hasDecisionField",
+              "value": "={{ $json.decision !== undefined }}",
+              "type": "boolean"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Create and wait for decision": {
+      "main": [
+        [
+          {
+            "node": "Route by decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by decision": {
+      "main": [
+        [
+          {
+            "node": "Mark processed",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Result: rejected",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Revise (create version)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Result: deleted while waiting",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Result: timeout",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark processed": {
+      "main": [
+        [
+          {
+            "node": "Result: approved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Revise (create version)": {
+      "main": [
+        [
+          {
+            "node": "Wait for decision (v2)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for decision (v2)": {
+      "main": [
+        [
+          {
+            "node": "Result: after revision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

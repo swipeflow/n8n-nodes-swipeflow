@@ -1,0 +1,364 @@
+{
+  "name": "SwipeFlow test – 11. UX audit (operations)",
+  "description": "Carousel creation with a media reference, invalid carousel input, Simplify on and off, Get Many, and Reject. The final Delete step is expected to fail: SwipeFlow only deletes pending items with no decisions, and this run rejects the item first.",
+  "nodes": [
+    {
+      "id": "aa139c8b-2ae7-5e55-8816-a912f3db0908",
+      "name": "Start",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "a86446b7-be43-5fd4-816e-98bf28e0d10c",
+      "name": "Import media",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "resource": "media",
+        "operation": "importFromUrl",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "url": "https://upload.wikimedia.org/wikipedia/commons/4/47/PNG_transparency_demonstration_1.png"
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "0da987f5-830a-51ae-b281-bf9a1f71303e",
+      "name": "Create carousel",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "resource": "item",
+        "operation": "create",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "title": "UX audit carousel",
+        "description": "Three slides",
+        "contentType": "carousel",
+        "content": "={{ JSON.stringify({ items: [ { type: \"image\", url: \"https://picsum.photos/id/10/600/400\", caption: \"One\" }, { type: \"image\", url: \"https://picsum.photos/id/20/600/400\", alt: \"Two\" }, { type: \"image\", url: $(\"Import media\").item.json.ref || \"https://picsum.photos/id/30/600/400\" } ] }) }}"
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "f2b6309e-3a73-5f35-8933-e95db052b40d",
+      "name": "Bad carousel JSON",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "resource": "item",
+        "operation": "create",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "title": "x",
+        "contentType": "carousel",
+        "content": "{bad"
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "ea99d347-f120-5fd2-b2ac-a01e1d9af7d8",
+      "name": "Carousel without slides",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        896,
+        0
+      ],
+      "parameters": {
+        "resource": "item",
+        "operation": "create",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "title": "x",
+        "contentType": "carousel",
+        "content": "{\"items\": []}"
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "1e3227b2-b2cb-5d86-b51c-5233ac83503c",
+      "name": "Get simplified",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        0
+      ],
+      "parameters": {
+        "resource": "item",
+        "operation": "get",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "itemId": "={{ $(\"Create carousel\").item.json.id }}"
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "b4badbcc-2756-5147-a7c1-904b89633827",
+      "name": "Get raw",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        0
+      ],
+      "parameters": {
+        "resource": "item",
+        "operation": "get",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "itemId": "={{ $(\"Create carousel\").item.json.id }}",
+        "simplify": false
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "eaea1d85-3bc3-5f1b-87d8-c970d672467f",
+      "name": "Get many simplified",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        0
+      ],
+      "parameters": {
+        "resource": "item",
+        "operation": "getAll",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "returnAll": false,
+        "limit": 3
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "ba967851-de27-5186-87c2-80af08a0bc6d",
+      "name": "Reject",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        1792,
+        0
+      ],
+      "parameters": {
+        "resource": "item",
+        "operation": "reject",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "itemId": "={{ $(\"Create carousel\").item.json.id }}",
+        "comment": "UX audit reject"
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "b3cff414-70f1-5ccf-b431-5d2fd54671f0",
+      "name": "Delete (expected to fail after Reject)",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        2016,
+        0
+      ],
+      "parameters": {
+        "resource": "item",
+        "operation": "delete",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "itemId": "={{ $(\"Create carousel\").item.json.id }}"
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Import media": {
+      "main": [
+        [
+          {
+            "node": "Create carousel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create carousel": {
+      "main": [
+        [
+          {
+            "node": "Bad carousel JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bad carousel JSON": {
+      "main": [
+        [
+          {
+            "node": "Carousel without slides",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Carousel without slides": {
+      "main": [
+        [
+          {
+            "node": "Get simplified",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get simplified": {
+      "main": [
+        [
+          {
+            "node": "Get raw",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get raw": {
+      "main": [
+        [
+          {
+            "node": "Get many simplified",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many simplified": {
+      "main": [
+        [
+          {
+            "node": "Reject",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reject": {
+      "main": [
+        [
+          {
+            "node": "Delete (expected to fail after Reject)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

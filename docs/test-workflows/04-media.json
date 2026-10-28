@@ -1,0 +1,444 @@
+{
+  "name": "SwipeFlow test – 4. Media",
+  "description": "Get usage, upload a binary, create an image item with the media reference, resolve media on Get, import from a URL, get, list unattached, download and delete.",
+  "nodes": [
+    {
+      "id": "5b152d44-6f42-5d90-9d25-9964121fb0ba",
+      "name": "Start",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "aa13b5e3-8821-5040-9ca8-f94626b131cc",
+      "name": "Usage before",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "resource": "media",
+        "operation": "getUsage",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        }
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "7253c139-6382-5b7e-a92c-862ddbba6fb5",
+      "name": "Fetch sample image",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://placehold.co/600x400.png",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "2ac5daca-995b-5c8b-a0c5-57ec953c7da5",
+      "name": "Upload media",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "resource": "media",
+        "operation": "upload",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "binaryPropertyName": "data",
+        "fileName": "n8n-test.png"
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "b7e66516-2643-57c9-883a-f5ba2e02839a",
+      "name": "Create image item",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        896,
+        0
+      ],
+      "parameters": {
+        "resource": "item",
+        "operation": "create",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "title": "Media test (image)",
+        "contentType": "image",
+        "content": "={{ $json.ref }}",
+        "additionalFields": {
+          "mediaIds": "={{ $json.id ?? $json.mediaId }}"
+        }
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "94ddcf79-ccaa-56ba-9321-16ca64686397",
+      "name": "Get item (resolve media)",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        0
+      ],
+      "parameters": {
+        "resource": "item",
+        "operation": "get",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "itemId": "={{ $json.id }}",
+        "options": {
+          "resolveMedia": true
+        }
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "84db2fbb-13af-525e-b722-34654323c3ce",
+      "name": "Import from URL",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        0
+      ],
+      "parameters": {
+        "resource": "media",
+        "operation": "importFromUrl",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "url": "https://placehold.co/300x200.png",
+        "fileName": "imported.png"
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "26d2db58-2d57-53a3-9265-3eae588e21d9",
+      "name": "Wait for import",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1568,
+        0
+      ],
+      "parameters": {
+        "amount": 8,
+        "resume": "timeInterval",
+        "unit": "seconds"
+      }
+    },
+    {
+      "id": "e733e761-2e75-513b-b3b5-179f4b03d5e7",
+      "name": "Get media",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        1792,
+        0
+      ],
+      "parameters": {
+        "resource": "media",
+        "operation": "get",
+        "mediaId": "={{ $json.id ?? $json.mediaId }}"
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "87bfe80f-2169-5c5c-98f0-bb31b387b8f1",
+      "name": "List unattached media",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        2016,
+        0
+      ],
+      "parameters": {
+        "resource": "media",
+        "operation": "getAll",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "returnAll": false,
+        "limit": 10,
+        "filters": {
+          "attached": false
+        }
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "9b1bae8f-7cd5-5895-a462-f99a292c0969",
+      "name": "Download media",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        0
+      ],
+      "parameters": {
+        "resource": "media",
+        "operation": "download",
+        "mediaId": "={{ $(\"Get media\").item.json.id ?? $(\"Get media\").item.json.mediaId }}",
+        "binaryPropertyName": "file"
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "a6272a68-a5c7-5d23-97d6-8469cc935a3a",
+      "name": "Delete imported media",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        2464,
+        0
+      ],
+      "parameters": {
+        "resource": "media",
+        "operation": "delete",
+        "mediaId": "={{ $(\"Get media\").item.json.id ?? $(\"Get media\").item.json.mediaId }}"
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "d68c53b6-7df5-5776-96d5-3f411e8d5043",
+      "name": "Usage after",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        2688,
+        0
+      ],
+      "parameters": {
+        "resource": "media",
+        "operation": "getUsage",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        }
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Usage before": {
+      "main": [
+        [
+          {
+            "node": "Fetch sample image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch sample image": {
+      "main": [
+        [
+          {
+            "node": "Upload media",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload media": {
+      "main": [
+        [
+          {
+            "node": "Create image item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create image item": {
+      "main": [
+        [
+          {
+            "node": "Get item (resolve media)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get item (resolve media)": {
+      "main": [
+        [
+          {
+            "node": "Import from URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Import from URL": {
+      "main": [
+        [
+          {
+            "node": "Wait for import",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for import": {
+      "main": [
+        [
+          {
+            "node": "Get media",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get media": {
+      "main": [
+        [
+          {
+            "node": "List unattached media",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List unattached media": {
+      "main": [
+        [
+          {
+            "node": "Download media",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download media": {
+      "main": [
+        [
+          {
+            "node": "Delete imported media",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete imported media": {
+      "main": [
+        [
+          {
+            "node": "Usage after",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}
