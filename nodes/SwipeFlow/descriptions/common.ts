@@ -81,16 +81,25 @@ export const CONTENT_TYPE_OPTIONS: INodeProperties['options'] = [
 	{ name: 'Video', value: 'video', description: 'A video URL or media reference' },
 ];
 
-const CAROUSEL_EXAMPLE =
-	'{"items": [{"type": "image", "url": "https://example.com/photo.jpg", "caption": "Front"}]}';
+const CAROUSEL_PLACEHOLDER = `{
+  "items": [
+    { "type": "image", "url": "media://<id>", "caption": "Front" },
+    { "type": "video", "url": "https://example.com/clip.mp4" }
+  ]
+}`;
+
+const MEDIA_REFERENCE_WHY =
+	'<br><br><b>Why a media reference?</b><br>' +
+	'Upload the file first with <b>Media → Upload</b> or <b>Import From URL</b>. ' +
+	'SwipeFlow then keeps its own copy with the item and its versions, so what was approved stays viewable. ' +
+	'A plain URL is loaded from its source each time, so the file can change, expire or go offline.';
 
 export const CONTENT_HINT =
 	'What the reviewer sees, depending on the Content Type:<br>' +
 	'• <b>Text</b> and <b>HTML</b>: the content itself<br>' +
-	'• <b>Image</b>, <b>video</b> and <b>audio</b>: an https URL or a <code>media://&lt;id&gt;</code> reference from Media → Upload<br>' +
-	'• <b>Carousel</b>: JSON with 1 to 20 slides, such as <code>' +
-	CAROUSEL_EXAMPLE.replace(/</g, '&lt;') +
-	'</code>';
+	'• <b>Image</b>, <b>video</b> and <b>audio</b>: a <code>media://&lt;id&gt;</code> reference (preferred) or an https URL<br>' +
+	'• <b>Carousel</b>: JSON with 1 to 20 slides, each with a <code>type</code> and a <code>url</code>' +
+	MEDIA_REFERENCE_WHY;
 
 /**
  * The Content input, one property per kind of content so each gets its own size, example and
@@ -103,35 +112,46 @@ export function contentProperties(displayOptions: IDisplayOptions): INodePropert
 			...base,
 			type: 'string',
 			typeOptions: { rows: 4 },
+			placeholder: 'e.g. Hi team, here is this week’s update for your approval.',
 			description:
-				'The text the reviewer sees. Markdown is supported. Embed uploaded media with <code>![alt](media://&lt;id&gt;)</code>.',
+				'The text the reviewer sees.<br>' +
+				'• Markdown is supported<br>' +
+				'• To show an uploaded image, use <code>![alt](media://&lt;id&gt;)</code>' +
+				MEDIA_REFERENCE_WHY,
 			displayOptions: withShow(displayOptions, { contentType: ['text'] }),
 		},
 		{
 			...base,
 			type: 'string',
 			typeOptions: { rows: 6 },
+			placeholder: 'e.g. <h2>Weekly update</h2><p>Here is this week’s draft.</p>',
 			description:
-				'The HTML the reviewer sees. Embed uploaded media by its <code>media://&lt;id&gt;</code> reference.',
+				'The HTML the reviewer sees.<br>' +
+				'• To show an uploaded image, use <code>&lt;img src="media://&lt;id&gt;"&gt;</code>' +
+				MEDIA_REFERENCE_WHY,
 			displayOptions: withShow(displayOptions, { contentType: ['html'] }),
 		},
 		{
 			...base,
 			type: 'string',
-			placeholder: 'e.g. https://example.com/photo.jpg',
+			placeholder: 'e.g. media://<id> or https://example.com/photo.jpg',
 			description:
-				'An https URL, or a <code>media://&lt;id&gt;</code> reference from <b>Media → Upload</b>',
+				'The file the reviewer sees: a <code>media://&lt;id&gt;</code> reference (preferred) or an https URL.' +
+				MEDIA_REFERENCE_WHY,
 			displayOptions: withShow(displayOptions, { contentType: ['image', 'video', 'audio'] }),
 		},
 		{
 			...base,
 			type: 'string',
 			typeOptions: { rows: 8 },
-			placeholder: CAROUSEL_EXAMPLE,
+			placeholder: CAROUSEL_PLACEHOLDER,
 			description:
-				'JSON with 1 to 20 slides:<br><code>' +
-				CAROUSEL_EXAMPLE.replace(/</g, '&lt;') +
-				'</code><br>Each slide has a <code>type</code> (<code>image</code> or <code>video</code>) and a <code>url</code> (an https URL or a <code>media://&lt;id&gt;</code> reference). <code>caption</code> and <code>alt</code> are optional.',
+				'A carousel of 1 to 20 slides, as JSON: <code>{"items": [ … ]}</code><br><br>' +
+				'Each slide has:<br>' +
+				'• <code>type</code>: <code>image</code> or <code>video</code><br>' +
+				'• <code>url</code>: a <code>media://&lt;id&gt;</code> reference (preferred) or an https URL<br>' +
+				'• <code>caption</code> and <code>alt</code>: optional text' +
+				MEDIA_REFERENCE_WHY,
 			displayOptions: withShow(displayOptions, { contentType: ['carousel'] }),
 		},
 	];
