@@ -19,6 +19,7 @@ import {
 	projectSelector,
 	waitLimitProperties,
 } from './descriptions/common';
+import { searchProjects } from './methods';
 import { CREDENTIALS_NAME, DOCS_URL, ICON } from './shared/constants';
 import { createClient } from './shared/transport';
 import { buildOutcome, outcomeFromStatus } from './wait/outcome';
@@ -122,6 +123,10 @@ export class SwipeflowApproval implements INodeType {
 				options: createAdditionalOptions,
 			},
 		],
+	};
+
+	methods = {
+		listSearch: { searchProjects },
 	};
 
 	webhookMethods = {
