@@ -55,7 +55,8 @@ export class SwipeflowApproval implements INodeType {
 		group: ['input'],
 		version: 1,
 		subtitle: '={{ "Human approval" }}',
-		description: 'Approve, Reject or Request Changes by swiping on your phone.',
+		description:
+			'Review content and decisions on your phone. Swipe to approve, reject, or request changes.',
 		defaults: { name: 'SwipeFlow Approval' },
 		codex: {
 			categories: ['HITL'],
