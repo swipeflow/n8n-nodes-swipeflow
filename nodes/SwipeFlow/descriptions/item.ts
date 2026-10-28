@@ -134,7 +134,7 @@ export const createAdditionalOptions: INodeProperties['options'] = [
 		name: 'mediaIds',
 		type: 'string',
 		default: '',
-		placeholder: 'e.g. 66f1f77bcf86cd799439099, 66f1f77bcf86cd79943909a',
+		placeholder: 'e.g. 0192f1a4-7c3e-7507-9f1f-6cd799439099, 0192f1a4-7c3e-7507-9f1f-6cd79943909a',
 		description:
 			'Comma-separated IDs of uploaded media to attach, from the Media → Upload operation',
 	},

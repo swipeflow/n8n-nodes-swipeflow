@@ -156,7 +156,7 @@ describe('get, getUsage and delete', () => {
 	it('delete reports what was deleted', async () => {
 		api.stub('DELETE', /media\/m3$/, '');
 		const [[out]] = await run({ operation: 'delete', mediaId: 'm3' }).result;
-		expect(out.json).toEqual({ success: true, mediaId: 'm3' });
+		expect(out.json).toEqual({ deleted: true, mediaId: 'm3' });
 	});
 
 	it('escapes the media id so an expression cannot change the path', async () => {

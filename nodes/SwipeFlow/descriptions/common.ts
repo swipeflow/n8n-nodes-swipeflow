@@ -40,7 +40,7 @@ export function projectSelector(description = 'The project to work in'): INodePr
 				displayName: 'By ID',
 				name: 'id',
 				type: 'string',
-				placeholder: 'e.g. 507f1f77bcf86cd799439011',
+				placeholder: 'e.g. 0192f1a4-7c3e-7507-9f1f-6cd799439011',
 			},
 		],
 	};

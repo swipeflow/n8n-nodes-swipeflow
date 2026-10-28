@@ -45,8 +45,8 @@ A call the key's scopes do not allow is refused by SwipeFlow with a 403.
   "comment": "Looks good",
   "decidedBy": "Riley Reviewer",
   "decidedAt": "2026-09-21T12:00:00.000Z",
-  "itemId": "66f1f77bcf86cd799439011",
-  "projectId": "507f1f77bcf86cd799439011",
+  "itemId": "0192f1a4-7c3e-7507-9f1f-6cd799439012",
+  "projectId": "0192f1a4-7c3e-7507-9f1f-6cd799439011",
   "item": { "...": "the full item" }
 }
 ```
@@ -63,8 +63,8 @@ A call the key's scopes do not allow is refused by SwipeFlow with a 403.
 
 - Only the first input item is used; an execution can be paused once per node. Put the node in a loop (for example Loop Over Items) to review many.
 - An automatic retry of the node (*Retry On Fail*) does not create a second item: the item is created with an idempotency key derived from the execution and node. Re-running the workflow does create a new one.
-- SwipeFlow has no per-item callbacks, so each wait registers a short-lived webhook on the project (named `n8n wait exec=<id> item=<id> …`) and removes it when the decision arrives.
-  - A wait with a time limit that passes, or an execution cancelled after its limit, leaves its webhook behind until the next wait in the same project cleans it up.
+- SwipeFlow has no per-item callbacks, so each wait registers a short-lived webhook on the project (named `n8n wait exec=<id> item=<id>`) and removes it when the decision arrives.
+  - A wait with a time limit sets the webhook to expire when the limit passes, and SwipeFlow deletes it then, even if the execution was cancelled.
   - A cancelled wait with no time limit leaves its webhook until you delete it under the project's webhooks in SwipeFlow. It points at a URL n8n no longer serves, so it does no harm beyond failed delivery entries in the webhook log.
 - Other events in the project also reach n8n while a wait is open; the node ignores everything except a decision on its own item.
 

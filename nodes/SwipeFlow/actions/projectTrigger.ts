@@ -21,7 +21,7 @@ export const projectTriggerActions: Record<string, ActionHandler> = {
 		const projectId = projectIdOf(ctx, i);
 		const triggerId = triggerIdOf(ctx, i);
 		await client.triggers.delete(projectId, triggerId);
-		return { success: true, triggerId, projectId };
+		return { deleted: true, triggerId, projectId };
 	},
 
 	run: async (ctx, client, i) => {

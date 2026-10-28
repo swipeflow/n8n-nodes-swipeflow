@@ -104,7 +104,7 @@ export const itemActions: Record<string, ActionHandler> = {
 		const projectId = projectIdOf(ctx, i);
 		const itemId = itemIdOf(ctx, i);
 		await client.items.delete(projectId, itemId);
-		return { success: true, itemId, projectId };
+		return { deleted: true, itemId, projectId };
 	},
 
 	createVersion: async (ctx, client, i) => {

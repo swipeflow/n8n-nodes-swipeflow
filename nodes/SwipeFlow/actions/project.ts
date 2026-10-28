@@ -39,6 +39,6 @@ export const projectActions: Record<string, ActionHandler> = {
 	delete: async (ctx, client, i) => {
 		const projectId = projectIdOf(ctx, i);
 		await client.projects.delete(projectId);
-		return { success: true, projectId };
+		return { deleted: true, projectId };
 	},
 };

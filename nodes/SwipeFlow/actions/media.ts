@@ -95,7 +95,7 @@ export const mediaActions: Record<string, ActionHandler> = {
 	delete: async (ctx, client, i) => {
 		const mediaId = mediaIdOf(ctx, i);
 		await client.media.delete(mediaId);
-		return { success: true, mediaId };
+		return { deleted: true, mediaId };
 	},
 
 	download: async (ctx, client, i) => {

@@ -27,7 +27,7 @@ export const webhookActions: Record<string, ActionHandler> = {
 		const projectId = projectIdOf(ctx, i);
 		const webhookId = webhookIdOf(ctx, i);
 		await client.webhooks.delete(projectId, webhookId);
-		return { success: true, webhookId, projectId };
+		return { deleted: true, webhookId, projectId };
 	},
 
 	test: async (ctx, client, i) =>

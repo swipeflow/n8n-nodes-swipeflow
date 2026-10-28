@@ -152,7 +152,7 @@ describe('item operations', () => {
 		api.stub('DELETE', /items\/i001$/, '');
 		expect(
 			await exec({ resource: 'item', operation: 'delete', projectId: project, itemId: created.id }),
-		).toEqual([{ success: true, itemId: 'i001', projectId: 'p1' }]);
+		).toEqual([{ deleted: true, itemId: 'i001', projectId: 'p1' }]);
 	});
 
 	it('approve and reject omit an empty comment', async () => {
@@ -246,7 +246,7 @@ describe('project operations', () => {
 	it('delete reports what was deleted', async () => {
 		api.stub('DELETE', /projects\/p1$/, '');
 		expect(await exec({ resource: 'project', operation: 'delete', projectId: project })).toEqual([
-			{ success: true, projectId: 'p1' },
+			{ deleted: true, projectId: 'p1' },
 		]);
 	});
 });
@@ -299,7 +299,7 @@ describe('webhook operations', () => {
 			body: { name: 'a' },
 		}) as { id: string };
 		expect(await exec({ ...webhook, operation: 'delete', webhookId: created.id })).toEqual([
-			{ success: true, webhookId: created.id, projectId: 'p1' },
+			{ deleted: true, webhookId: created.id, projectId: 'p1' },
 		]);
 		expect(api.webhooks.size).toBe(0);
 	});
@@ -354,7 +354,7 @@ describe('project trigger operations', () => {
 	it('delete reports what was deleted', async () => {
 		api.stub('DELETE', /triggers\/t1$/, '');
 		expect(await exec({ ...trigger, operation: 'delete', triggerId: 't1' })).toEqual([
-			{ success: true, triggerId: 't1', projectId: 'p1' },
+			{ deleted: true, triggerId: 't1', projectId: 'p1' },
 		]);
 	});
 });
