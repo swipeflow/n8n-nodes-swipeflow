@@ -1,0 +1,824 @@
+{
+  "name": "SwipeFlow test – 5. Projects, webhooks, manual triggers, queue, custom API call",
+  "description": "Publish this workflow first (it contains a webhook sink), set the Create webhook URL to its production URL, then run the manual branch. Covers project resolve, create, update, get, get many and delete; webhook create, test, get many and delete; manual trigger create, get many, run and delete; Get Next Pending; and Custom API Call including the full-URL refusal.",
+  "nodes": [
+    {
+      "id": "b31df322-4240-5979-9f72-7e2e4e28d317",
+      "name": "Webhook sink",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "swipeflow-v2-sink",
+        "responseMode": "onReceived"
+      }
+    },
+    {
+      "id": "767ebd4c-e1d7-5a84-ac47-adaad8c8e8bd",
+      "name": "Sink: record delivery",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "event",
+              "value": "={{ $json.body.event }}",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "signatureHeader",
+              "value": "={{ Object.keys($json.headers).filter(k => k.toLowerCase().includes(\"signature\")).join(\",\") }}",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ee201d1b-3172-5d6a-af20-5a23b607f67d",
+      "name": "Start",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        224
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "c357fa78-f07f-5e41-b337-bea5b0132535",
+      "name": "Resolve project #1",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        224,
+        224
+      ],
+      "parameters": {
+        "resource": "project",
+        "operation": "resolve",
+        "name": "n8n v2 node tests",
+        "description": "Created by the n8n v2 test workflows"
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "8857f9b7-309a-54ee-93e8-8d8cdfbcf871",
+      "name": "Resolve project #2",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        448,
+        224
+      ],
+      "parameters": {
+        "resource": "project",
+        "operation": "resolve",
+        "name": "n8n v2 node tests",
+        "description": "Created by the n8n v2 test workflows"
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "67473bb3-1b28-543e-a290-42a48e33efe2",
+      "name": "Check: resolve is idempotent",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        672,
+        224
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c1",
+              "name": "resolveIsIdempotent",
+              "value": "={{ $(\"Resolve project #1\").first().json.id === $(\"Resolve project #2\").first().json.id }}",
+              "type": "boolean"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "4291db67-3472-57ec-bf04-9b6700d95938",
+      "name": "Create temp project",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        896,
+        224
+      ],
+      "parameters": {
+        "resource": "project",
+        "operation": "create",
+        "name": "=n8n temp {{ $now.toFormat(\"HHmmss\") }}",
+        "description": "temporary"
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "e8f864cb-6f07-59bd-a9f3-481b6dca3bf0",
+      "name": "Update temp project",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        224
+      ],
+      "parameters": {
+        "resource": "project",
+        "operation": "update",
+        "projectId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $(\"Create temp project\").first().json.id }}"
+        },
+        "updateFields": {
+          "description": "updated by n8n"
+        }
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "4a16fcbd-4fd2-58dc-9b3e-afeb942364c5",
+      "name": "Get temp project",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        224
+      ],
+      "parameters": {
+        "resource": "project",
+        "operation": "get",
+        "projectId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $(\"Create temp project\").first().json.id }}"
+        }
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "7f2a8c31-6ebb-56e8-b28c-fcaf159b6222",
+      "name": "Get many projects (limit 3)",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        224
+      ],
+      "parameters": {
+        "resource": "project",
+        "operation": "getAll",
+        "returnAll": false,
+        "limit": 3
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "9f226790-7e66-51fe-b882-f045dc064bcf",
+      "name": "Delete temp project",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        1792,
+        224
+      ],
+      "parameters": {
+        "resource": "project",
+        "operation": "delete",
+        "projectId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $(\"Create temp project\").first().json.id }}"
+        }
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "23ee2132-dce3-5e2d-b77c-ce0915ebc953",
+      "name": "Create webhook",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        2016,
+        224
+      ],
+      "parameters": {
+        "resource": "webhook",
+        "operation": "create",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "url": "https://YOUR-N8N-HOST/webhook/swipeflow-v2-sink",
+        "events": [
+          "item.created",
+          "project.trigger"
+        ],
+        "additionalFields": {
+          "name": "n8n v2 test sink",
+          "secret": "n8n-test-secret-123"
+        }
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "5bf16049-5962-51ba-8d9f-b65c72a87a52",
+      "name": "Send test event",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        224
+      ],
+      "parameters": {
+        "resource": "webhook",
+        "operation": "test",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "webhookId": "={{ $(\"Create webhook\").first().json._id ?? $(\"Create webhook\").first().json.id }}"
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "43b4557b-ec62-52dd-887c-99f14f0a173e",
+      "name": "Get webhooks",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        2464,
+        224
+      ],
+      "parameters": {
+        "resource": "webhook",
+        "operation": "getAll",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        }
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "87796021-819f-58fb-82be-456996043142",
+      "name": "Delete webhook",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        2688,
+        224
+      ],
+      "parameters": {
+        "resource": "webhook",
+        "operation": "delete",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "webhookId": "={{ $(\"Create webhook\").first().json._id ?? $(\"Create webhook\").first().json.id }}"
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "4bbba566-33b7-5ace-95f2-c8634e1c2fac",
+      "name": "Get manual triggers",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        2912,
+        224
+      ],
+      "parameters": {
+        "resource": "projectTrigger",
+        "operation": "getAll",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        }
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "52a011d7-d9d5-59dc-9f5f-6d840089dbdb",
+      "name": "Create manual trigger",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        3136,
+        224
+      ],
+      "parameters": {
+        "resource": "projectTrigger",
+        "operation": "create",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "name": "admin test button",
+        "event": "admin_test"
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "09571661-7c27-5921-ad93-5ceb290739ea",
+      "name": "Run manual trigger",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        3360,
+        224
+      ],
+      "parameters": {
+        "resource": "projectTrigger",
+        "operation": "run",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "triggerId": "={{ $(\"Create manual trigger\").first().json._id ?? $(\"Create manual trigger\").first().json.id }}",
+        "payload": {
+          "from": "n8n"
+        }
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "1cc918eb-8a69-5b96-93be-ea5a853e6300",
+      "name": "Delete manual trigger",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        3584,
+        224
+      ],
+      "parameters": {
+        "resource": "projectTrigger",
+        "operation": "delete",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "triggerId": "={{ $(\"Create manual trigger\").first().json._id ?? $(\"Create manual trigger\").first().json.id }}"
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "1af999c4-4b16-58b5-86e9-244e6ec31ced",
+      "name": "Create item for queue",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        3808,
+        224
+      ],
+      "parameters": {
+        "resource": "item",
+        "operation": "create",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "title": "Queue test",
+        "contentType": "text",
+        "content": "queue"
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "eb621319-8f1b-5531-90ac-c2a10c8ab876",
+      "name": "Get next pending",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        4032,
+        224
+      ],
+      "parameters": {
+        "resource": "item",
+        "operation": "getNext",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        }
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "4d8e1101-07b5-5a12-bbd6-b5ffba7c310b",
+      "name": "Custom API call (GET items)",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        4256,
+        224
+      ],
+      "parameters": {
+        "resource": "other",
+        "operation": "apiRequest",
+        "method": "GET",
+        "endpoint": "=projects/{{ $(\"Resolve project #1\").first().json.id }}/items",
+        "query": {
+          "limit": 2
+        }
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "2d6e0a2c-6a62-55b3-b0b2-358f3b416aa6",
+      "name": "Custom API call (full URL, must be refused)",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        4480,
+        224
+      ],
+      "parameters": {
+        "resource": "other",
+        "operation": "apiRequest",
+        "method": "GET",
+        "endpoint": "https://example.com/steal"
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Webhook sink": {
+      "main": [
+        [
+          {
+            "node": "Sink: record delivery",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Resolve project #1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolve project #1": {
+      "main": [
+        [
+          {
+            "node": "Resolve project #2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolve project #2": {
+      "main": [
+        [
+          {
+            "node": "Check: resolve is idempotent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check: resolve is idempotent": {
+      "main": [
+        [
+          {
+            "node": "Create temp project",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create temp project": {
+      "main": [
+        [
+          {
+            "node": "Update temp project",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update temp project": {
+      "main": [
+        [
+          {
+            "node": "Get temp project",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get temp project": {
+      "main": [
+        [
+          {
+            "node": "Get many projects (limit 3)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many projects (limit 3)": {
+      "main": [
+        [
+          {
+            "node": "Delete temp project",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete temp project": {
+      "main": [
+        [
+          {
+            "node": "Create webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create webhook": {
+      "main": [
+        [
+          {
+            "node": "Send test event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send test event": {
+      "main": [
+        [
+          {
+            "node": "Get webhooks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get webhooks": {
+      "main": [
+        [
+          {
+            "node": "Delete webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete webhook": {
+      "main": [
+        [
+          {
+            "node": "Get manual triggers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get manual triggers": {
+      "main": [
+        [
+          {
+            "node": "Create manual trigger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create manual trigger": {
+      "main": [
+        [
+          {
+            "node": "Run manual trigger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run manual trigger": {
+      "main": [
+        [
+          {
+            "node": "Delete manual trigger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete manual trigger": {
+      "main": [
+        [
+          {
+            "node": "Create item for queue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create item for queue": {
+      "main": [
+        [
+          {
+            "node": "Get next pending",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get next pending": {
+      "main": [
+        [
+          {
+            "node": "Custom API call (GET items)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Custom API call (GET items)": {
+      "main": [
+        [
+          {
+            "node": "Custom API call (full URL, must be refused)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

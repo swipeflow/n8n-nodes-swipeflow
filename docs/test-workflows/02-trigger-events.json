@@ -1,0 +1,581 @@
+{
+  "name": "SwipeFlow test – 2. Trigger events (publish me)",
+  "description": "Publish this workflow, then run the manual branch. The SwipeFlow Trigger records every event the manual branch generates: created, updated, change requested, approved, processed, rejected, project trigger and deleted. Pick your project in each node.",
+  "nodes": [
+    {
+      "id": "538ed682-324e-5109-94c5-345760143adb",
+      "name": "SwipeFlow Trigger",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflowTrigger",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "events": [
+          "item.created",
+          "item.updated",
+          "item.deleted",
+          "item.approved",
+          "item.rejected",
+          "item.change_requested",
+          "item.processed",
+          "project.trigger"
+        ],
+        "options": {}
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "b8b879cf-9ec6-5ac0-994f-addfe5f1441a",
+      "name": "Summarize event",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "event",
+              "value": "={{ $json.event }}",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "itemId",
+              "value": "={{ $json.itemId ?? '' }}",
+              "type": "string"
+            },
+            {
+              "id": "a3",
+              "name": "decision",
+              "value": "={{ JSON.stringify($json.decision ?? null) }}",
+              "type": "string"
+            },
+            {
+              "id": "a4",
+              "name": "triggerEvent",
+              "value": "={{ $json.triggerEvent ?? '' }}",
+              "type": "string"
+            },
+            {
+              "id": "a5",
+              "name": "keys",
+              "value": "={{ Object.keys($json).join(',') }}",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "10751041-f54b-5f96-b54f-82d3d8d49de9",
+      "name": "Generate events (manual)",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        224
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "6d14370c-ec3a-54ce-ba34-b1518929ea46",
+      "name": "Create item A",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        224,
+        224
+      ],
+      "parameters": {
+        "resource": "item",
+        "operation": "create",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "title": "Trigger test A",
+        "contentType": "text",
+        "content": "Item A"
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "9a7da30b-b5aa-5021-bbaa-f39009159fd1",
+      "name": "A: request changes",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        448,
+        224
+      ],
+      "parameters": {
+        "resource": "item",
+        "operation": "requestChanges",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "itemId": "={{ $(\"Create item A\").item.json.id }}",
+        "comment": "tweak"
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "95c0d235-29a2-581c-9855-928168c23f5a",
+      "name": "A: create version",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        672,
+        224
+      ],
+      "parameters": {
+        "resource": "item",
+        "operation": "createVersion",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "itemId": "={{ $(\"Create item A\").item.json.id }}",
+        "updateFields": {
+          "content": "Item A v2"
+        }
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "66a04460-314f-5ad6-abe2-24d43fd87ae6",
+      "name": "A: approve",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        896,
+        224
+      ],
+      "parameters": {
+        "resource": "item",
+        "operation": "approve",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "itemId": "={{ $(\"Create item A\").item.json.id }}"
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "d814705b-a59f-5cd5-a5cc-4bd4163aba92",
+      "name": "A: mark processed",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        224
+      ],
+      "parameters": {
+        "resource": "item",
+        "operation": "markProcessed",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "itemId": "={{ $(\"Create item A\").item.json.id }}",
+        "options": {
+          "action": "trigger test"
+        }
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "2524d701-0b21-5aa8-a967-1ad67d713252",
+      "name": "Create item B",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        224
+      ],
+      "parameters": {
+        "resource": "item",
+        "operation": "create",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "title": "Trigger test B",
+        "contentType": "text",
+        "content": "Item B"
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "d8f9adfc-6cfb-5b22-be29-dd0ea08ed72a",
+      "name": "B: reject",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        224
+      ],
+      "parameters": {
+        "resource": "item",
+        "operation": "reject",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "itemId": "={{ $(\"Create item B\").item.json.id }}",
+        "comment": "nope"
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "2c994e7f-f162-5746-be45-fc0944cdd7c9",
+      "name": "Create manual trigger",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        1792,
+        224
+      ],
+      "parameters": {
+        "resource": "projectTrigger",
+        "operation": "create",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "name": "n8n test button",
+        "event": "n8n_test_trigger"
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "63a5b1fd-6113-5e0f-b580-0234ccde310e",
+      "name": "Run manual trigger",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        2016,
+        224
+      ],
+      "parameters": {
+        "resource": "projectTrigger",
+        "operation": "run",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "triggerId": "={{ $json._id }}",
+        "payload": {
+          "hello": "world"
+        }
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "682d57d9-16fe-5f02-8f2a-20f8f61fe4fb",
+      "name": "Delete manual trigger",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        224
+      ],
+      "parameters": {
+        "resource": "projectTrigger",
+        "operation": "delete",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "triggerId": "={{ $(\"Create manual trigger\").item.json._id }}"
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "f285bf8d-5ab8-579d-8005-dab6c7736aec",
+      "name": "Create item C",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        2464,
+        224
+      ],
+      "parameters": {
+        "resource": "item",
+        "operation": "create",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "title": "Trigger test C",
+        "contentType": "text",
+        "content": "Item C"
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "55800359-55ae-5958-aa5d-9c8b48216f2f",
+      "name": "C: delete",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        2688,
+        224
+      ],
+      "parameters": {
+        "resource": "item",
+        "operation": "delete",
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "itemId": "={{ $json.id }}"
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "SwipeFlow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Summarize event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate events (manual)": {
+      "main": [
+        [
+          {
+            "node": "Create item A",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create item A": {
+      "main": [
+        [
+          {
+            "node": "A: request changes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "A: request changes": {
+      "main": [
+        [
+          {
+            "node": "A: create version",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "A: create version": {
+      "main": [
+        [
+          {
+            "node": "A: approve",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "A: approve": {
+      "main": [
+        [
+          {
+            "node": "A: mark processed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "A: mark processed": {
+      "main": [
+        [
+          {
+            "node": "Create item B",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create item B": {
+      "main": [
+        [
+          {
+            "node": "B: reject",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "B: reject": {
+      "main": [
+        [
+          {
+            "node": "Create manual trigger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create manual trigger": {
+      "main": [
+        [
+          {
+            "node": "Run manual trigger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run manual trigger": {
+      "main": [
+        [
+          {
+            "node": "Delete manual trigger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete manual trigger": {
+      "main": [
+        [
+          {
+            "node": "Create item C",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create item C": {
+      "main": [
+        [
+          {
+            "node": "C: delete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

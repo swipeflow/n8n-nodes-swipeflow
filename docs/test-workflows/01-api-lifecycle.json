@@ -1,0 +1,489 @@
+{
+  "name": "SwipeFlow test – 1. API lifecycle (no human)",
+  "description": "Resolve a project, then create, status, request changes, create version, list versions, approve, mark processed, get, get many and delete. No human needed.",
+  "nodes": [
+    {
+      "id": "ccc8d78f-2809-5139-acba-6030c5d471f0",
+      "name": "Start",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "38f1e8d3-6761-5d33-a55b-fe0827833d2f",
+      "name": "Resolve project",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "resource": "project",
+        "operation": "resolve",
+        "name": "n8n v2 node tests",
+        "description": "Created by the n8n v2 test workflows"
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "779aa854-565f-5cea-b805-490801540398",
+      "name": "Create item",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "resource": "item",
+        "operation": "create",
+        "projectId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $(\"Resolve project\").first().json.id }}"
+        },
+        "title": "=Lifecycle test {{ $now.toISO() }}",
+        "description": "API lifecycle test",
+        "contentType": "html",
+        "content": "<h1>Draft v1</h1><p>Hello from n8n</p>",
+        "additionalFields": {
+          "metadata": {
+            "source": "n8n-lifecycle-test",
+            "n": 1
+          },
+          "expiresAt": "={{ $now.plus({ days: 1 }).toISO() }}"
+        }
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "7721ba04-1910-5df9-b3d1-6402b1bc4302",
+      "name": "Get status (pending)",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "resource": "item",
+        "operation": "getStatus",
+        "projectId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $(\"Resolve project\").first().json.id }}"
+        },
+        "itemId": "={{ $(\"Create item\").item.json.id }}"
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "5162385d-a6db-5027-abee-c1cc5806b6ec",
+      "name": "Request changes",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        896,
+        0
+      ],
+      "parameters": {
+        "resource": "item",
+        "operation": "requestChanges",
+        "projectId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $(\"Resolve project\").first().json.id }}"
+        },
+        "itemId": "={{ $(\"Create item\").item.json.id }}",
+        "comment": "Please shorten the heading"
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "19a5dcd0-3901-5694-ba23-f043c53ea86b",
+      "name": "Create version 2",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        0
+      ],
+      "parameters": {
+        "resource": "item",
+        "operation": "createVersion",
+        "projectId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $(\"Resolve project\").first().json.id }}"
+        },
+        "itemId": "={{ $(\"Create item\").item.json.id }}",
+        "updateFields": {
+          "content": "<h1>Draft v2</h1>",
+          "contentType": "html",
+          "title": "Lifecycle test (revised)"
+        }
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "308a3ad4-de68-50d2-b2fe-4e04c3871911",
+      "name": "List versions",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        0
+      ],
+      "parameters": {
+        "resource": "item",
+        "operation": "listVersions",
+        "projectId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $(\"Resolve project\").first().json.id }}"
+        },
+        "itemId": "={{ $(\"Create item\").item.json.id }}",
+        "returnAll": true
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "903fcd0a-05ff-53ef-9026-a12dd444b80f",
+      "name": "Approve",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        0
+      ],
+      "parameters": {
+        "resource": "item",
+        "operation": "approve",
+        "projectId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $(\"Resolve project\").first().json.id }}"
+        },
+        "itemId": "={{ $(\"Create item\").item.json.id }}",
+        "comment": "Approved by n8n test"
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "7cbee2f2-1d5c-5a16-aac0-698a88107463",
+      "name": "Mark processed",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        1792,
+        0
+      ],
+      "parameters": {
+        "resource": "item",
+        "operation": "markProcessed",
+        "projectId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $(\"Resolve project\").first().json.id }}"
+        },
+        "itemId": "={{ $(\"Create item\").item.json.id }}",
+        "options": {
+          "action": "n8n lifecycle test done"
+        }
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "6c8e2d01-fa87-50b8-960a-39424ee7f734",
+      "name": "Get item with versions",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        2016,
+        0
+      ],
+      "parameters": {
+        "resource": "item",
+        "operation": "get",
+        "projectId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $(\"Resolve project\").first().json.id }}"
+        },
+        "itemId": "={{ $(\"Create item\").item.json.id }}",
+        "options": {
+          "includeVersions": true
+        }
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "83ab7865-425d-5acb-afef-8cdc5a4a9598",
+      "name": "Get processed approved items",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        0
+      ],
+      "parameters": {
+        "resource": "item",
+        "operation": "getAll",
+        "projectId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $(\"Resolve project\").first().json.id }}"
+        },
+        "returnAll": false,
+        "limit": 5,
+        "filters": {
+          "status": "approved",
+          "processed": true
+        }
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "7659fdf7-7da4-5274-96d7-787c4309ac75",
+      "name": "Create scratch item",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        2464,
+        0
+      ],
+      "parameters": {
+        "resource": "item",
+        "operation": "create",
+        "projectId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $(\"Resolve project\").first().json.id }}"
+        },
+        "title": "Scratch item (to delete)",
+        "contentType": "text",
+        "content": "Delete me"
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "69fccf57-7395-589b-8398-833e726762bc",
+      "name": "Delete pending item",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflow",
+      "typeVersion": 2,
+      "position": [
+        2688,
+        0
+      ],
+      "parameters": {
+        "resource": "item",
+        "operation": "delete",
+        "projectId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $(\"Resolve project\").first().json.id }}"
+        },
+        "itemId": "={{ $json.id }}"
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      },
+      "executeOnce": true
+    }
+  ],
+  "connections": {
+    "Resolve project": {
+      "main": [
+        [
+          {
+            "node": "Create item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create item": {
+      "main": [
+        [
+          {
+            "node": "Get status (pending)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get status (pending)": {
+      "main": [
+        [
+          {
+            "node": "Request changes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Request changes": {
+      "main": [
+        [
+          {
+            "node": "Create version 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create version 2": {
+      "main": [
+        [
+          {
+            "node": "List versions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List versions": {
+      "main": [
+        [
+          {
+            "node": "Approve",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approve": {
+      "main": [
+        [
+          {
+            "node": "Mark processed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark processed": {
+      "main": [
+        [
+          {
+            "node": "Get item with versions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get item with versions": {
+      "main": [
+        [
+          {
+            "node": "Get processed approved items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get processed approved items": {
+      "main": [
+        [
+          {
+            "node": "Create scratch item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create scratch item": {
+      "main": [
+        [
+          {
+            "node": "Delete pending item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

@@ -1,0 +1,133 @@
+{
+  "name": "SwipeFlow test – 10. Approval node",
+  "description": "The SwipeFlow Approval node with a 2 minute limit and one output per outcome. Swipe the item in the SwipeFlow app to take Approved, Rejected or Change requested, or wait to take Timed out. Pick your project.",
+  "nodes": [
+    {
+      "id": "9dc34523-c0a9-5c68-91d0-4d3d967a73dc",
+      "name": "Start",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "2d15ca7a-28a6-5dee-82ef-767d281a8822",
+      "name": "SwipeFlow Approval",
+      "type": "@swipeflow/n8n-nodes-swipeflow.swipeflowApproval",
+      "typeVersion": 1,
+      "position": [
+        224,
+        -48
+      ],
+      "parameters": {
+        "projectId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "title": "Approval node test",
+        "description": "Approve, reject or request changes.",
+        "contentType": "text",
+        "content": "SwipeFlow Approval node test",
+        "limitWaitTime": true,
+        "resumeAmount": 2,
+        "resumeUnit": "minutes",
+        "additionalFields": {}
+      },
+      "credentials": {
+        "SwipeFlowApiKey": {
+          "id": null,
+          "name": "SwipeFlow account"
+        }
+      }
+    },
+    {
+      "id": "f1890b05-ff6f-555e-908b-7e94395e6f77",
+      "name": "Timed out",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        560,
+        -208
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "1848e214-5af1-5edf-a718-7edb4ee51663",
+      "name": "Approved",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        560,
+        -80
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "5c0b81ee-9974-555b-aee8-0ed9505faf8e",
+      "name": "Rejected",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        560,
+        48
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "41bb1c6d-56ca-591e-a593-0e9b6b3ebb34",
+      "name": "Change requested",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        560,
+        176
+      ],
+      "parameters": {}
+    }
+  ],
+  "connections": {
+    "SwipeFlow Approval": {
+      "main": [
+        [
+          {
+            "node": "Timed out",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Approved",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Rejected",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Change requested",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}
