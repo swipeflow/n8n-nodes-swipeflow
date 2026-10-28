@@ -19,6 +19,21 @@ Follow the [community nodes installation guide](https://docs.n8n.io/integrations
 
 > Treat the API key like a password: it grants access to your SwipeFlow projects.
 
+### Scopes
+
+An API key can be limited to the scopes it needs, and to specific projects. The nodes need:
+
+| To | Scopes |
+| -- | ------ |
+| Create, update or version items, request changes, mark processed, upload media | `reviews:request` |
+| Read items, statuses, versions or media | `reviews:read` |
+| Approve or reject an item from n8n | `reviews:decide` |
+| Wait for a decision (SwipeFlow Approval, Create and Wait, Wait for Decision) | `reviews:request`, `reviews:read`, and `projects:read` and `projects:write`, because each wait registers a short-lived webhook on the project |
+| SwipeFlow Trigger | `projects:read` and `projects:write`, to register its webhook |
+| List or manage projects, webhooks and manual triggers | `projects:read`, `projects:write` |
+
+A call the key's scopes do not allow is refused by SwipeFlow with a 403.
+
 ## Wait for approval in one node
 
 **SwipeFlow → Item → Create and Wait for Decision** creates an item for review and pauses the workflow. When a reviewer decides, the workflow resumes with the outcome:
